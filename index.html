@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Context Window Viewer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    /* Light mode palette */
+    --bg: #fafbfc;
+    --bg-2: #ffffff;
+    --bg-3: #f3f5f8;
+    --bg-4: #e8ecf1;
+    --border: #e3e7ee;
+    --border-strong: #cfd5de;
+    --fg: #0f1626;
+    --fg-2: #3d4760;
+    --fg-dim: #6b7588;
+    --fg-faint: #9aa3b5;
+    --accent: #3366ff;
+    --accent-weak: #e6edff;
+    --shadow: 0 1px 2px rgba(15,22,38,.05), 0 2px 6px rgba(15,22,38,.04);
+
+    /* Block-kind colors — soft backgrounds + stronger text */
+    --sys-bg: #f3edff; --sys-fg: #6a39c2; --sys-bar: #a07cee;
+    --usr-bg: #e8f4ff; --usr-fg: #1260b8; --usr-bar: #5aa2e8;
+    --ast-bg: #e9f7ee; --ast-fg: #196b3b; --ast-bar: #5ab986;
+    --tu-bg:  #fff3e0; --tu-fg:  #a65b00; --tu-bar:  #eba14a;
+    --tr-bg:  #fdeaee; --tr-fg:  #a81c36; --tr-bar:  #e86380;
+    --thk-bg: #eef0fb; --thk-fg: #3d4b8f; --thk-bar: #7d8ad9;
+    --txt-bg: #f0f2f6; --txt-fg: #45506a; --txt-bar: #98a0b3;
+    --img-bg: #edf6f4; --img-fg: #2d6b64; --img-bar: #5ea89f;
+    --doc-bg: #eef3fb; --doc-fg: #38527c; --doc-bar: #7993b8;
+    --meta-bg:#f1f2f4; --meta-fg:#6b7588; --meta-bar:#b8bec9;
+    --raw-bg: #f1f2f4; --raw-fg: #6b7588; --raw-bar: #b8bec9;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font: 13.5px/1.5 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Inter",
+      "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  a { color: var(--accent); }
+
+  .app { display: grid; grid-template-columns: 320px 1fr; height: 100vh; overflow: hidden; }
+
+  /* ---------- sidebar ---------- */
+  .sidebar { border-right: 1px solid var(--border); background: var(--bg-2);
+    display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .sidebar header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+  .sidebar header .brand { display: flex; gap: 8px; align-items: center; }
+  .sidebar header h1 { margin: 0; font-size: 14px; letter-spacing: .2px; font-weight: 600; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--usr-bar), var(--ast-bar)); }
+  .sidebar header .sub { color: var(--fg-faint); font-size: 11px; margin-top: 6px;
+    overflow-wrap: anywhere; }
+  .sidebar header .sub code { background: var(--bg-3); padding: 1px 4px; border-radius: 3px;
+    font-size: 10.5px; color: var(--fg-2); }
+
+  .search { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .search input { width: 100%; padding: 8px 10px; border-radius: 6px; background: var(--bg);
+    border: 1px solid var(--border-strong); color: var(--fg); outline: none; font: inherit; }
+  .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+
+  .filters { padding: 8px 12px; display: flex; gap: 6px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border); }
+  .chip { font-size: 11.5px; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--border-strong); background: var(--bg-2); color: var(--fg-2);
+    cursor: pointer; user-select: none; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.on { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .toggle-row { padding: 6px 14px 10px; display: flex; gap: 10px; align-items: center;
+    font-size: 11px; color: var(--fg-dim); border-bottom: 1px solid var(--border); }
+  .toggle-row label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+
+  .sess-list { overflow-y: auto; flex: 1; min-height: 0; }
+  .sess { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .sess:hover { background: var(--bg-3); }
+  .sess.active { background: var(--accent-weak); border-left: 3px solid var(--accent);
+    padding-left: 11px; }
+  .sess .title { font-size: 13px; font-weight: 500; color: var(--fg); overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .sess .row2 { display: flex; justify-content: space-between; font-size: 11px;
+    color: var(--fg-dim); margin-top: 4px; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px;
+    font-weight: 500; letter-spacing: .2px; }
+  .badge.claude { color: var(--ast-fg); background: var(--ast-bg); }
+  .badge.codex  { color: var(--usr-fg); background: var(--usr-bg); }
+  .badge.audit  { color: var(--meta-fg); background: var(--meta-bg); }
+
+  /* ---------- main ---------- */
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+  .main header { padding: 14px 24px 12px; border-bottom: 1px solid var(--border);
+    background: var(--bg-2); }
+  .main header .title-row { display: flex; gap: 16px; align-items: baseline;
+    justify-content: space-between; }
+  .main header h2 { margin: 0; font-size: 16px; font-weight: 600; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .main header .path { color: var(--fg-faint); font-size: 11px; margin-top: 4px;
+    overflow-wrap: anywhere; }
+  .tabs { display: flex; gap: 0; margin-top: 14px; border-bottom: 1px solid var(--border);
+    margin: 14px -24px -12px; padding: 0 24px; }
+  .tab { padding: 8px 14px; cursor: pointer; font-size: 13px; color: var(--fg-dim);
+    border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--fg); }
+  .tab.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+
+  .content { overflow-y: auto; flex: 1; min-height: 0; }
+  .empty { color: var(--fg-faint); padding: 80px 40px; text-align: center; font-size: 14px; }
+
+  .loading-card { padding: 80px 40px; text-align: center; display: flex;
+    flex-direction: column; align-items: center; gap: 14px; }
+  .spinner { width: 32px; height: 32px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite; }
+  .loading-card .title-line { color: var(--fg); font-size: 14px; font-weight: 500; }
+  .loading-card .sub-line { color: var(--fg-dim); font-size: 12px; max-width: 420px;
+    line-height: 1.5; }
+  .loading-card .hint { color: var(--fg-faint); font-size: 11px; margin-top: 4px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .trunc-banner { background: #fff3cd; border: 1px solid #ffe08a; color: #6b4c00;
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 18px; font-size: 13px; }
+
+  /* ---------- Simple view ---------- */
+  .simple { padding: 28px 40px 60px; max-width: none; }
+  .hero { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 22px; max-width: 1200px; }
+  .card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; box-shadow: var(--shadow); }
+  .card.kpi .value { font-size: 22px; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
+  .card.kpi .value.warn { color: #c46500; }
+  .card.kpi .value.alert { color: #c4314b; }
+  .card.kpi .label { font-size: 11px; color: var(--fg-dim); text-transform: uppercase;
+    letter-spacing: .05em; margin-top: 4px; }
+
+  .section { margin-bottom: 26px; }
+  .section h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600;
+    color: var(--fg-2); text-transform: uppercase; letter-spacing: .06em; }
+
+  .fill-bar { height: 22px; background: var(--bg-3); border-radius: 7px; overflow: hidden;
+    border: 1px solid var(--border); display: flex; }
+  .fill-bar .seg { height: 100%; min-width: 2px; }
+  .fill-bar.slim { height: 12px; border-radius: 5px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px 22px; margin-top: 10px;
+    font-size: 12px; color: var(--fg-2); }
+  .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+    margin-right: 6px; vertical-align: -1px; }
+
+  .limit-bar-wrap { margin-top: 6px; }
+  .limit-labels { display: flex; justify-content: space-between; color: var(--fg-dim);
+    font-size: 11px; margin-top: 6px; }
+
+  .offenders { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; box-shadow: var(--shadow); }
+  .offenders .row { display: grid; grid-template-columns: 30px 90px 1fr 110px 70px;
+    gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; }
+  .offenders .row:last-child { border-bottom: none; }
+  .offenders .row:hover { background: var(--bg-3); }
+  .offenders .row .rank { color: var(--fg-faint); font-variant-numeric: tabular-nums;
+    font-size: 12px; }
+  .offenders .row .preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: var(--fg-2); }
+  .offenders .row .bar { height: 6px; background: var(--bg-3); border-radius: 3px;
+    overflow: hidden; }
+  .offenders .row .bar > div { height: 100%; background: var(--fg-dim); }
+  .offenders .row .tokens { text-align: right; font-variant-numeric: tabular-nums;
+    color: var(--fg-2); font-size: 12px; }
+  .kind-pill { font-size: 10.5px; text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
+    letter-spacing: .04em; text-align: center; }
+
+  .growth { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; box-shadow: var(--shadow); }
+  .growth .chart-wrap { position: relative; height: 260px; margin: 4px 0 8px; }
+  .growth .chart-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%;
+    display: block; }
+  .growth .gridline { stroke: var(--border); stroke-dasharray: 2 3; stroke-width: 1;
+    vector-effect: non-scaling-stroke; }
+  .growth .bar-seg { transition: opacity .15s; }
+  .growth .bar-seg:hover { opacity: .75; }
+  .growth .cum-line { fill: none; stroke: var(--accent); stroke-width: 1.8;
+    vector-effect: non-scaling-stroke; }
+  .growth .cum-dot { fill: var(--accent); }
+  .growth .axis-bottom { stroke: var(--border-strong); vector-effect: non-scaling-stroke; }
+  .growth .tick { position: absolute; font-size: 11px; color: var(--fg-dim);
+    font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap;
+    line-height: 1; }
+  .growth .tick.y-left  { text-align: right; transform: translateY(-50%); padding-right: 4px; }
+  .growth .tick.y-right { transform: translateY(-50%); padding-left: 4px;
+    color: var(--accent); opacity: .85; }
+  .growth .tick.x       { bottom: 6px; transform: translateX(-50%); }
+  .growth .axis-label   { position: absolute; font-size: 10px; color: var(--fg-faint);
+    pointer-events: none; white-space: nowrap; }
+  .growth .axis-label.right  { color: var(--accent); opacity: .8; }
+  .growth .axis-label.bottom { bottom: -16px; left: 50%; transform: translateX(-50%); }
+  .growth .summary { display: flex; justify-content: space-between; gap: 18px;
+    color: var(--fg-dim); font-size: 11px; margin-top: 18px; flex-wrap: wrap; }
+  .growth .summary b { color: var(--fg-2); font-weight: 500; }
+
+  .limit-select { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid var(--border-strong); background: var(--bg-2); color: var(--fg-2);
+    cursor: pointer; }
+  .limit-select:focus { outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-weak); }
+
+  .suggestions { display: grid; gap: 10px; }
+  .sug { background: var(--bg-2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 11px 14px; font-size: 13px; color: var(--fg-2); box-shadow: var(--shadow); }
+  .sug.warn  { border-left-color: #e0a020; }
+  .sug.alert { border-left-color: #d84a60; }
+  .sug.ok    { border-left-color: #52a679; }
+  .sug b { color: var(--fg); }
+
+  /* ---------- Detailed view ---------- */
+  .detailed { padding: 0; }
+  .detail-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    padding: 10px 24px; border-bottom: 1px solid var(--border); background: var(--bg-2); }
+  .detail-toolbar input { padding: 6px 9px; border-radius: 5px; background: var(--bg);
+    border: 1px solid var(--border-strong); font: inherit; font-size: 12.5px; flex: 1;
+    max-width: 320px; }
+  .detail-toolbar input:focus { outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-weak); }
+  .detail-toolbar button { background: var(--bg-2); color: var(--fg-2);
+    border: 1px solid var(--border-strong); padding: 5px 10px; border-radius: 5px;
+    cursor: pointer; font: inherit; font-size: 12px; }
+  .detail-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+  .kind-filters { display: flex; gap: 5px; flex-wrap: wrap; }
+  .kind-filters .k { font-size: 10.5px; padding: 2px 8px; border-radius: 4px; cursor: pointer;
+    user-select: none; border: 1px solid transparent; }
+  .kind-filters .k.off { opacity: .35; filter: grayscale(.5); }
+
+  .tree { padding: 8px 0 40px; }
+  .node { position: relative; }
+  .node > .row { display: grid;
+    grid-template-columns: 14px 90px 1fr 110px 88px;
+    gap: 10px; padding: 5px 24px 5px 10px; align-items: center;
+    cursor: pointer; border-bottom: 1px dotted transparent; border-left: 2px solid transparent; }
+  .node > .row:hover { background: var(--bg-3); }
+  .node.open > .row { background: var(--bg-3); }
+  .node.highlight > .row { background: #fff7e0; border-left-color: #e0a020;
+    animation: flash 1.6s ease-out; }
+  @keyframes flash { 0%,25% { background: #ffe9a8; } 100% { background: #fff7e0; } }
+  .caret { color: var(--fg-faint); font-family: monospace; user-select: none;
+    text-align: center; font-size: 11px; }
+  .caret.leaf { visibility: hidden; }
+  .kind { font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+    padding: 2px 7px; border-radius: 4px; text-align: center; font-weight: 500; }
+  .kind.system    { background: var(--sys-bg); color: var(--sys-fg); }
+  .kind.user      { background: var(--usr-bg); color: var(--usr-fg); }
+  .kind.assistant { background: var(--ast-bg); color: var(--ast-fg); }
+  .kind.tool_use  { background: var(--tu-bg);  color: var(--tu-fg); }
+  .kind.tool_result { background: var(--tr-bg);color: var(--tr-fg); }
+  .kind.thinking  { background: var(--thk-bg); color: var(--thk-fg); }
+  .kind.text      { background: var(--txt-bg); color: var(--txt-fg); }
+  .kind.image     { background: var(--img-bg); color: var(--img-fg); }
+  .kind.document  { background: var(--doc-bg); color: var(--doc-fg); }
+  .kind.meta      { background: var(--meta-bg);color: var(--meta-fg); }
+  .kind.raw       { background: var(--raw-bg); color: var(--raw-fg); }
+
+  .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
+  .mini-bar { height: 6px; background: var(--bg-3); border-radius: 3px; overflow: hidden;
+    border: 1px solid var(--border); }
+  .mini-bar > div { height: 100%; }
+  .count { text-align: right; font-size: 11.5px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+
+  .body { padding: 6px 24px 12px 48px; color: var(--fg-2); white-space: pre-wrap;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px;
+    max-height: 420px; overflow: auto; background: var(--bg-3);
+    border: 1px solid var(--border); border-radius: 6px; margin: 4px 16px 4px 38px; }
+  .children { margin-left: 26px; border-left: 1px dashed var(--border); }
+
+  /* JSON/code mini-highlight */
+  .hl-str { color: #0b7860; }
+  .hl-num { color: #a64a00; }
+  .hl-bool { color: #3b4fb8; }
+  .hl-key { color: #5d3da8; }
+  .hl-null { color: #a14960; }
+
+  /* Responsive-ish */
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr 1fr; }
+    .app { grid-template-columns: 260px 1fr; }
+    .node > .row { grid-template-columns: 12px 80px 1fr 80px 68px; padding-right: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <header>
+      <div class="brand"><span class="logo-dot"></span><h1>Context Viewer</h1></div>
+      <div class="sub" id="roots"></div>
+    </header>
+    <div class="search"><input id="q" placeholder="Search conversations" autocomplete="off" /></div>
+    <div class="filters">
+      <span class="chip on" data-filter="all">All</span>
+      <span class="chip" data-filter="claude">Claude</span>
+      <span class="chip" data-filter="codex">Codex</span>
+    </div>
+    <div class="toggle-row">
+      <label><input type="checkbox" id="hide-audit" checked /> Hide audit logs</label>
+      <span id="session-count" style="margin-left:auto"></span>
+    </div>
+    <div class="sess-list" id="sess-list"></div>
+  </aside>
+
+  <section class="main">
+    <header>
+      <div class="title-row">
+        <div style="min-width:0">
+          <h2 id="title">Select a conversation</h2>
+          <div class="path" id="path"></div>
+        </div>
+      </div>
+      <div class="tabs" id="tabs" style="display:none">
+        <div class="tab on" data-tab="simple">Simple</div>
+        <div class="tab" data-tab="detailed">Detailed</div>
+      </div>
+    </header>
+
+    <div class="content" id="content">
+      <div class="empty">Pick a conversation on the left to see how its context is spent.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ---------- context-limit lookup ----------
+// Patterns are matched in order. First match wins. Claude / OpenAI families
+// as of April 2026 — if something looks wrong, override via the picker.
+const MODEL_LIMITS = [
+  [/^claude-.*opus/i,            200000, "Claude Opus"],
+  [/^claude-.*sonnet.*1m/i,     1000000, "Claude Sonnet (1M beta)"],
+  [/^claude-.*sonnet/i,           200000, "Claude Sonnet"],
+  [/^claude-.*haiku/i,            200000, "Claude Haiku"],
+  [/^claude-3-5-sonnet/i,         200000, "Claude 3.5 Sonnet"],
+  [/^claude-3-7-sonnet/i,         200000, "Claude 3.7 Sonnet"],
+  [/^claude-3-opus/i,             200000, "Claude 3 Opus"],
+  [/^claude-3-haiku/i,            200000, "Claude 3 Haiku"],
+  [/^gpt-5/i,                     400000, "GPT-5"],
+  [/^gpt-4\.1/i,                 1000000, "GPT-4.1"],
+  [/^gpt-4o/i,                    128000, "GPT-4o"],
+  [/^gpt-4-turbo/i,               128000, "GPT-4 Turbo"],
+  [/^o(1|3|4)/i,                  200000, "OpenAI reasoning"],
+  [/^codex/i,                     200000, "Codex"],
+];
+function limitForModel(model) {
+  if (!model) return null;
+  for (const [re, limit, label] of MODEL_LIMITS) {
+    if (re.test(model)) return { limit, label };
+  }
+  return null;
+}
+
+const LIMIT_PRESETS = [
+  { key: "auto",  label: "Auto" },
+  { key: "128k",  label: "128K",   value: 128000 },
+  { key: "200k",  label: "200K",   value: 200000 },
+  { key: "400k",  label: "400K",   value: 400000 },
+  { key: "1m",    label: "1M",     value: 1000000 },
+];
+
+const KIND_META = {
+  system:      { label: "System",      bg: "--sys-bg", fg: "--sys-fg", bar: "--sys-bar" },
+  user:        { label: "User",        bg: "--usr-bg", fg: "--usr-fg", bar: "--usr-bar" },
+  assistant:   { label: "Assistant",   bg: "--ast-bg", fg: "--ast-fg", bar: "--ast-bar" },
+  tool_use:    { label: "Tool calls",  bg: "--tu-bg",  fg: "--tu-fg",  bar: "--tu-bar" },
+  tool_result: { label: "Tool results",bg: "--tr-bg",  fg: "--tr-fg",  bar: "--tr-bar" },
+  thinking:    { label: "Thinking",    bg: "--thk-bg", fg: "--thk-fg", bar: "--thk-bar" },
+  text:        { label: "Text",        bg: "--txt-bg", fg: "--txt-fg", bar: "--txt-bar" },
+  image:       { label: "Images",      bg: "--img-bg", fg: "--img-fg", bar: "--img-bar" },
+  document:    { label: "Documents",   bg: "--doc-bg", fg: "--doc-fg", bar: "--doc-bar" },
+  meta:        { label: "Meta",        bg: "--meta-bg",fg: "--meta-fg",bar: "--meta-bar" },
+  raw:         { label: "Raw",         bg: "--raw-bg", fg: "--raw-fg", bar: "--raw-bar" },
+};
+const AGGREGATE_ORDER = ["system","user","assistant","tool_use","tool_result","thinking","text","image","document","meta","raw"];
+
+const state = {
+  sessions: [], current: null, session: null,
+  filter: "all", query: "", hideAudit: true,
+  tab: "simple",
+  detail: { kindsOff: new Set(), search: "" },
+  // Context-limit override: "auto" | preset key | {custom: N}
+  limitOverride: "auto",
+};
+
+// Resolve the active context limit for the current session.
+function activeLimit(session) {
+  if (state.limitOverride && state.limitOverride !== "auto") {
+    if (state.limitOverride.custom) return { limit: state.limitOverride.custom, label: "Custom", source: "manual" };
+    const preset = LIMIT_PRESETS.find(p => p.key === state.limitOverride);
+    if (preset && preset.value) return { limit: preset.value, label: preset.label, source: "manual" };
+  }
+  const detected = limitForModel(session?.detectedModel);
+  if (detected) return { limit: detected.limit, label: detected.label, source: "detected", model: session.detectedModel };
+  return { limit: 200000, label: "200K", source: "default" };
+}
+
+// ---------- bootstrap ----------
+async function loadSessions() {
+  try {
+    const res = await fetch("/api/sessions");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    document.getElementById("roots").innerHTML =
+      `Reading from: ${data.claudeRoot.split(" | ").map(p => `<code>${escapeHTML(p)}</code>`).join(" · ")}` +
+      (data.codexRoot ? `<br>Codex: ${data.codexRoot.split(" | ").map(p => `<code>${escapeHTML(p)}</code>`).join(" · ")}` : "");
+    state.sessions = data.sessions;
+    renderList();
+    // Fire real-title fetch in the background; swap titles in when it returns.
+    loadTitles();
+  } catch (e) {
+    document.getElementById("sess-list").innerHTML =
+      `<div class="empty" style="padding:40px 20px;font-size:12.5px">Couldn't reach the server: ${escapeHTML(String(e))}</div>`;
+  }
+}
+
+async function loadTitles() {
+  const badge = document.getElementById("session-count");
+  const prev = badge.textContent;
+  badge.textContent = prev + " · reading titles…";
+  try {
+    const res = await fetch("/api/titles");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { titles } = await res.json();
+    for (const s of state.sessions) {
+      if (titles[s.id]) s.title = titles[s.id];
+    }
+    renderList();
+  } catch (e) {
+    // non-fatal — fallback titles stay
+    console.warn("loadTitles failed", e);
+  } finally {
+    // renderList will reset the count
+  }
+}
+
+function isAudit(s) { return /\/audit\.jsonl$/.test(s.path); }
+
+function renderList() {
+  const list = document.getElementById("sess-list");
+  const q = state.query.toLowerCase();
+  const filtered = state.sessions.filter(s => {
+    if (state.filter !== "all" && s.client !== state.filter) return false;
+    if (state.hideAudit && isAudit(s)) return false;
+    if (q && !(s.title.toLowerCase().includes(q) || s.path.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  document.getElementById("session-count").textContent =
+    `${filtered.length} of ${state.sessions.length}`;
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty" style="padding:40px 20px;font-size:12.5px">No conversations match your filters.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(s => {
+    const when = new Date(s.mtime * 1000).toLocaleString();
+    const active = state.current === s.id ? "active" : "";
+    const badge = isAudit(s) ? "audit" : s.client;
+    const badgeLabel = isAudit(s) ? "audit" : s.client;
+    const sizeLabel = s.tokens != null ? `${fmt(s.tokens)} tok`
+                    : s.size   != null ? humanSize(s.size)
+                    : "";
+    return `<div class="sess ${active}" data-id="${escapeAttr(s.id)}">
+      <div class="title">${escapeHTML(s.title || "(untitled)")}</div>
+      <div class="row2">
+        <span><span class="badge ${badge}">${badgeLabel}</span> ${sizeLabel}</span>
+        <span>${when}</span>
+      </div>
+    </div>`;
+  }).join("");
+  for (const el of list.querySelectorAll(".sess")) {
+    el.addEventListener("click", () => openSession(el.dataset.id));
+  }
+}
+
+async function openSession(id) {
+  state.current = id; renderList();
+  const content = document.getElementById("content");
+  const meta = state.sessions.find(x => x.id === id);
+  const sizeLabel = meta && meta.size != null ? humanSize(meta.size) : "";
+  const big = meta && meta.size != null && meta.size > 5 * 1024 * 1024;
+  const hint = big
+    ? "Large file — this can take a few seconds. Files over 20,000 events are truncated to keep the UI responsive."
+    : "Reading the .jsonl transcript from disk and building the block tree.";
+  content.innerHTML = `
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div class="title-line">Parsing conversation\u2026</div>
+      <div class="sub-line">${sizeLabel ? escapeHTML(sizeLabel) + " \u2022 " : ""}${escapeHTML(hint)}</div>
+      <div class="hint">Nothing leaves your machine.</div>
+    </div>`;
+  document.getElementById("title").textContent = (meta && meta.title) || "Loading\u2026";
+  document.getElementById("path").textContent = sizeLabel ? `(${sizeLabel})` : "";
+  const res = await fetch("/api/session?id=" + encodeURIComponent(id));
+  const s = await res.json();
+  if (s.error) {
+    content.innerHTML = `<div class="empty">${escapeHTML(s.error)}</div>`;
+    return;
+  }
+  state.session = s;
+  document.getElementById("title").textContent = s.title || "(untitled)";
+  document.getElementById("path").textContent = s.path;
+  document.getElementById("tabs").style.display = "flex";
+  renderTab();
+}
+
+function renderTab() {
+  if (!state.session) return;
+  const tab = state.tab;
+  document.querySelectorAll(".tab").forEach(t =>
+    t.classList.toggle("on", t.dataset.tab === tab));
+  if (tab === "simple") renderSimple(state.session);
+  else renderDetailed(state.session);
+}
+
+// ---------- aggregation ----------
+function walk(blocks) {
+  const out = [];
+  const recur = (list, parentPath) => {
+    for (let i = 0; i < list.length; i++) {
+      const b = list[i];
+      const path = [...parentPath, i];
+      out.push({ block: b, path });
+      if (b.children && b.children.length) recur(b.children, path);
+    }
+  };
+  recur(blocks, []);
+  return out;
+}
+
+function aggregate(session) {
+  // Only count a block's OWN text in its kind (children contribute on their own rows),
+  // so totals from nested nodes don't double-count.
+  const byKind = {};
+  const flat = walk(session.blocks);
+  for (const { block } of flat) {
+    const k = block.kind in KIND_META ? block.kind : "raw";
+    const toks = estTok(block.text);
+    if (!byKind[k]) byKind[k] = 0;
+    byKind[k] += toks;
+  }
+  const total = Object.values(byKind).reduce((a,b) => a+b, 0);
+  // heaviest individual (leaf-ish) blocks
+  const heavy = flat
+    .map(({ block, path }) => ({ block, path, tokens: estTok(block.text) }))
+    .filter(x => x.tokens > 0)
+    .sort((a,b) => b.tokens - a.tokens);
+  return { byKind, total, heavy, flat };
+}
+
+function estTok(text) { if (!text) return 0; return Math.max(1, Math.ceil(text.length / 4)); }
+
+// ---------- Simple view ----------
+function renderSimple(s) {
+  const agg = aggregate(s);
+  const total = agg.total;
+  const limitInfo = activeLimit(s);
+  const CTX = limitInfo.limit;
+  const pct = (total / CTX) * 100;
+  const pctClass = pct >= 80 ? "alert" : pct >= 50 ? "warn" : "";
+
+  const topKind = Object.entries(agg.byKind).sort((a,b) => b[1]-a[1])[0];
+  const msgCount = s.blocks.filter(b => ["user","assistant","system"].includes(b.kind)).length;
+
+  const segs = AGGREGATE_ORDER
+    .filter(k => agg.byKind[k])
+    .map(k => ({ kind: k, tokens: agg.byKind[k], meta: KIND_META[k] }));
+
+  const limitBadge = renderLimitBadge(s, limitInfo);
+
+  const truncBlock = s.blocks.find(b => b.kind === "meta" && /truncated after/.test(b.label || ""));
+  const truncBanner = truncBlock
+    ? `<div class="trunc-banner"><b>Session truncated.</b> ${escapeHTML(truncBlock.text || truncBlock.label)}</div>`
+    : "";
+
+  const html = `
+    <div class="simple">
+      ${truncBanner}
+      <div class="hero">
+        <div class="card kpi">
+          <div class="value ${pctClass}">${fmt(total)}</div>
+          <div class="label">Estimated tokens</div>
+        </div>
+        <div class="card kpi">
+          <div class="value ${pctClass}">${pct.toFixed(1)}%</div>
+          <div class="label">of ${humanLimit(CTX)} context</div>
+        </div>
+        <div class="card kpi">
+          <div class="value">${fmt(msgCount)}</div>
+          <div class="label">Messages</div>
+        </div>
+        <div class="card kpi">
+          <div class="value" title="${escapeAttr(topKind?.[0] || "")}">${topKind ? KIND_META[topKind[0]].label : "\u2014"}</div>
+          <div class="label">Top consumer \u00b7 ${topKind ? pctStr(topKind[1], total) : ""}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:14px;flex-wrap:wrap">
+          <h3 style="margin:0">Context fill</h3>
+          ${limitBadge}
+        </div>
+        <div class="fill-bar">
+          ${segs.map(seg =>
+            `<div class="seg" style="width:${Math.min(100, seg.tokens / CTX * 100).toFixed(3)}%;
+              background:var(${seg.meta.bar})" title="${seg.meta.label}: ${fmt(seg.tokens)} tok"></div>`
+          ).join("")}
+        </div>
+        <div class="limit-labels">
+          <span>0</span>
+          <span>${humanLimit(CTX/2)}</span>
+          <span>${humanLimit(CTX)} limit</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Where your tokens go</h3>
+        <div class="fill-bar slim">
+          ${segs.map(seg =>
+            `<div class="seg" style="width:${(seg.tokens / total * 100).toFixed(3)}%;
+              background:var(${seg.meta.bar})" title="${seg.meta.label}: ${fmt(seg.tokens)} tok"></div>`
+          ).join("")}
+        </div>
+        <div class="legend">
+          ${segs.map(seg =>
+            `<span><span class="swatch" style="background:var(${seg.meta.bar})"></span>
+              ${seg.meta.label} \u00b7 ${fmt(seg.tokens)} tok (${pctStr(seg.tokens, total)})</span>`
+          ).join("")}
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Heaviest blocks</h3>
+        <div class="offenders" id="offenders">
+          ${agg.heavy.slice(0, 8).map((h, i) => renderOffender(h, i, agg.heavy[0].tokens)).join("")
+            || `<div class="row"><div></div><div></div><div class="preview" style="color:var(--fg-faint)">No text-bearing blocks</div><div></div><div></div></div>`}
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Growth over turns</h3>
+        ${renderGrowth(s)}
+      </div>
+
+      <div class="section">
+        <h3>Suggestions</h3>
+        <div class="suggestions">${renderSuggestions(s, agg).join("")}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById("content").innerHTML = html;
+  // Wire up jump-to-detail from offenders list
+  for (const row of document.querySelectorAll("#offenders .row")) {
+    row.addEventListener("click", () => {
+      const path = row.dataset.path ? row.dataset.path.split(",").map(Number) : [];
+      jumpToDetail(path);
+    });
+  }
+  // Wire up the limit picker
+  const sel = document.getElementById("limit-select");
+  if (sel) sel.addEventListener("change", () => {
+    const v = sel.value;
+    if (v === "custom") {
+      const raw = prompt("Context limit in tokens (e.g. 150000):", "200000");
+      const n = raw && parseInt(raw.replace(/[^0-9]/g, ""), 10);
+      if (n && n > 0) state.limitOverride = { custom: n };
+      else return;
+    } else {
+      state.limitOverride = v;
+    }
+    renderSimple(s);
+  });
+}
+
+function renderLimitBadge(session, info) {
+  const sourceNote =
+    info.source === "detected" ? `detected <b>${escapeHTML(info.model)}</b>` :
+    info.source === "manual"   ? "manual override" :
+                                 "no model info \u2014 assuming 200K";
+  const options = [
+    ...LIMIT_PRESETS.map(p =>
+      `<option value="${p.key}" ${state.limitOverride === p.key ? "selected" : ""}>${p.label}${p.key === "auto" && info.source !== "manual" ? ` (${humanLimit(info.limit)})` : ""}</option>`
+    ),
+    `<option value="custom" ${state.limitOverride?.custom ? "selected" : ""}>Custom\u2026</option>`,
+  ].join("");
+  return `
+    <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--fg-dim)">
+      <span>Context window: ${sourceNote}</span>
+      <select id="limit-select" class="limit-select">${options}</select>
+    </div>`;
+}
+
+function humanLimit(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1).replace(/\.0$/, "") + "M";
+  if (n >= 1000) return Math.round(n / 1000) + "K";
+  return String(n);
+}
+
+function renderOffender(h, i, maxTokens) {
+  const m = KIND_META[h.block.kind] || KIND_META.raw;
+  const pct = (h.tokens / maxTokens) * 100;
+  return `<div class="row" data-path="${h.path.join(",")}">
+    <div class="rank">${i+1}</div>
+    <div><span class="kind-pill" style="background:var(${m.bg});color:var(${m.fg})">${h.block.kind}</span></div>
+    <div class="preview">${escapeHTML(h.block.label)}</div>
+    <div class="bar"><div style="width:${pct.toFixed(2)}%;background:var(${m.bar})"></div></div>
+    <div class="tokens">${fmt(h.tokens)} tok</div>
+  </div>`;
+}
+
+// Walk a block subtree and accumulate own-text tokens by kind.
+function collectKinds(b, acc) {
+  const own = estTok(b.text);
+  if (own) acc[b.kind] = (acc[b.kind] || 0) + own;
+  if (b.children) for (const c of b.children) collectKinds(c, acc);
+}
+
+// Does this top-level block count as a "real" user input (vs. a
+// Claude-API user message that's just carrying tool_results back)?
+function isUserInput(b) {
+  if (b.kind !== "user") return false;
+  // own text counts
+  if (b.text && b.text.trim()) return true;
+  // a text child counts
+  for (const c of (b.children || [])) {
+    if (c.kind === "text" && c.text && c.text.trim()) return true;
+  }
+  return false;
+}
+
+// Group top-level blocks into logical turns. A turn starts at each
+// real user input; everything before the first one is "setup" (turn 0).
+function buildTurns(blocks) {
+  const turns = [];
+  let cur = { label: "setup", kinds: {}, total: 0, hasContent: false };
+  turns.push(cur);
+  for (const b of blocks) {
+    if (isUserInput(b) && cur.hasContent) {
+      cur = { label: "", kinds: {}, total: 0, hasContent: false };
+      turns.push(cur);
+    }
+    collectKinds(b, cur.kinds);
+    cur.hasContent = true;
+  }
+  // Drop a leading empty setup turn (system prompt was already inside it,
+  // so this is rarely hit — but keep the logic safe).
+  if (turns.length && Object.keys(turns[0].kinds).length === 0) turns.shift();
+  // Label turns: setup (if kept), then T1, T2, ...
+  let n = 0;
+  for (const t of turns) {
+    if (t.label !== "setup") { n += 1; t.label = String(n); }
+    t.total = Object.values(t.kinds).reduce((a, b) => a + b, 0);
+  }
+  return turns;
+}
+
+function renderGrowth(s) {
+  const turns = buildTurns(s.blocks);
+  if (turns.length < 1 || turns.every(t => t.total === 0)) {
+    return `<div class="growth"><div style="color:var(--fg-faint);font-size:12px">Not enough turns to plot growth yet.</div></div>`;
+  }
+
+  // Cumulative series (end-of-turn)
+  let running = 0;
+  const cumulative = turns.map(t => (running += t.total));
+  const maxPerTurn = Math.max(...turns.map(t => t.total), 1);
+  const maxCum = Math.max(...cumulative, 1);
+
+  // Layout in viewBox units. SVG stretches to fit with preserveAspectRatio="none",
+  // so text labels live OUTSIDE the SVG (as HTML) to avoid being stretched.
+  const W = 1200, H = 260;
+  const PAD = { top: 16, right: 64, bottom: 36, left: 56 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+  const gap = turns.length > 40 ? 1 : turns.length > 20 ? 2 : 4;
+  const bandW = innerW / turns.length;
+  const barW = Math.max(2, bandW - gap);
+  const yBar = v => PAD.top + innerH - (v / maxPerTurn) * innerH;
+  const yCum = v => PAD.top + innerH - (v / maxCum) * innerH;
+
+  // --- SVG geometry (no text) ---
+  const gridCount = 4;
+  const gridLines = [];
+  for (let i = 1; i <= gridCount; i++) {
+    const frac = i / gridCount;
+    const y = PAD.top + innerH - frac * innerH;
+    gridLines.push(`<line class="gridline" x1="${PAD.left}" x2="${W - PAD.right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"/>`);
+  }
+  const bars = turns.map((t, i) => {
+    const x = PAD.left + i * bandW + (bandW - barW) / 2;
+    const kinds = AGGREGATE_ORDER.filter(k => t.kinds[k]);
+    let yTop = yBar(t.total);
+    return kinds.map(k => {
+      const v = t.kinds[k];
+      const h = (v / maxPerTurn) * innerH;
+      const rect = `<rect class="bar-seg" x="${x.toFixed(1)}" y="${yTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="var(${KIND_META[k].bar})"><title>Turn ${t.label} \u2022 ${KIND_META[k].label}: ${fmt(v)} tok</title></rect>`;
+      yTop += h;
+      return rect;
+    }).join("");
+  }).join("");
+  const linePath = cumulative.map((v, i) => {
+    const cx = PAD.left + i * bandW + bandW / 2;
+    return `${i === 0 ? "M" : "L"}${cx.toFixed(1)},${yCum(v).toFixed(1)}`;
+  }).join(" ");
+  const dots = cumulative.map((v, i) => {
+    const cx = PAD.left + i * bandW + bandW / 2;
+    return `<circle class="cum-dot" cx="${cx.toFixed(1)}" cy="${yCum(v).toFixed(1)}" r="2.5"><title>After turn ${turns[i].label}: ${fmt(v)} tok cumulative</title></circle>`;
+  }).join("");
+
+  // --- HTML text overlays (positioned in % of chart-wrap) ---
+  const pctX = x => ((x / W) * 100).toFixed(3) + "%";
+  const pctY = y => ((y / H) * 100).toFixed(3) + "%";
+  // Anchor tick labels to the same viewBox columns the gridlines use, so they
+  // stay aligned regardless of the chart's actual rendered width.
+  const yLeftRight  = pctX(W - PAD.left);      // distance from the RIGHT side of the container
+                                                // to the left edge of the plot area
+  const yRightLeft  = pctX(W - PAD.right);     // where the plot area ends; ticks start just past this
+
+  const yTicks = [];
+  for (let i = 1; i <= gridCount; i++) {
+    const frac = i / gridCount;
+    const y = PAD.top + innerH - frac * innerH;
+    yTicks.push(`<div class="tick y-left"  style="top:${pctY(y)}; right:${yLeftRight}">${humanLimit(maxPerTurn * frac)}</div>`);
+    yTicks.push(`<div class="tick y-right" style="top:${pctY(y)}; left:${yRightLeft}">${humanLimit(maxCum * frac)}</div>`);
+  }
+
+  const labelEvery = Math.max(1, Math.ceil(turns.length / 18));
+  const xTicks = turns.map((t, i) => {
+    if (i % labelEvery !== 0 && i !== turns.length - 1) return "";
+    const cx = PAD.left + i * bandW + bandW / 2;
+    return `<div class="tick x" style="left:${pctX(cx)}">${escapeHTML(t.label)}</div>`;
+  }).join("");
+
+  const axisLabelLeft  = pctX(PAD.left);
+  const axisLabelRight = pctX(W - PAD.right);
+
+  // Legend from kinds that actually appear
+  const kindsInUse = new Set();
+  for (const t of turns) for (const k of Object.keys(t.kinds)) kindsInUse.add(k);
+  const legend = AGGREGATE_ORDER.filter(k => kindsInUse.has(k)).map(k =>
+    `<span><span class="swatch" style="background:var(${KIND_META[k].bar})"></span>${KIND_META[k].label}</span>`
+  ).join("");
+
+  return `<div class="growth">
+    <div class="chart-wrap">
+      <div class="axis-label" style="top:-4px; left:${axisLabelLeft}">Tokens this turn</div>
+      <div class="axis-label right" style="top:-4px; left:${axisLabelRight}; transform:translateX(-100%)">Cumulative \u2192</div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        ${gridLines.join("")}
+        ${bars}
+        <path class="cum-line" d="${linePath}"/>
+        ${dots}
+        <line class="axis-bottom" x1="${PAD.left}" x2="${W - PAD.right}" y1="${H - PAD.bottom}" y2="${H - PAD.bottom}"/>
+      </svg>
+      ${yTicks.join("")}
+      ${xTicks}
+      <div class="axis-label bottom">Turn</div>
+    </div>
+    <div class="legend">${legend}</div>
+    <div class="summary">
+      <span><b>${turns.filter(t => t.label !== "setup").length}</b> real turn${turns.length === 1 ? "" : "s"}${turns.some(t => t.label === "setup") ? " + setup" : ""}</span>
+      <span>Peak per turn: <b>${fmt(maxPerTurn)}</b> tok</span>
+      <span>Final cumulative: <b>${fmt(cumulative[cumulative.length - 1])}</b> tok</span>
+    </div>
+  </div>`;
+}
+
+function subtreeTokens(b) {
+  let t = estTok(b.text);
+  if (b.children) for (const c of b.children) t += subtreeTokens(c);
+  return t;
+}
+
+function renderSuggestions(s, agg) {
+  const out = [];
+  const total = agg.total;
+  const CTX = activeLimit(s).limit;
+  const pct = (total / CTX) * 100;
+  const share = k => (agg.byKind[k] || 0) / Math.max(1, total);
+
+  if (pct >= 85) {
+    out.push(`<div class="sug alert"><b>Context nearly full (${pct.toFixed(0)}%).</b> Consider starting a new session or summarizing older turns.</div>`);
+  } else if (pct >= 60) {
+    out.push(`<div class="sug warn"><b>Over halfway full (${pct.toFixed(0)}%).</b> Watch for further tool_result growth.</div>`);
+  }
+
+  if (share("tool_result") > 0.5) {
+    out.push(`<div class="sug warn"><b>Tool results are ${pctStr(agg.byKind.tool_result, total)} of your context.</b> Use <code>limit</code>/<code>head</code> on outputs, target narrower file ranges, or ask tools for summaries instead of raw dumps.</div>`);
+  }
+
+  const bigOnes = agg.heavy.filter(h => h.tokens > 5000).slice(0, 3);
+  if (bigOnes.length) {
+    const samples = bigOnes.map(b => `<code>${escapeHTML(b.block.label.slice(0, 60))}</code> (${fmt(b.tokens)})`).join(", ");
+    out.push(`<div class="sug warn"><b>${bigOnes.length} block${bigOnes.length>1?"s":""} exceed 5K tokens</b> \u2014 ${samples}. These are your best truncation targets.</div>`);
+  }
+
+  if (share("system") > 0.25 && agg.byKind.system > 15000) {
+    out.push(`<div class="sug"><b>System prompt is ${pctStr(agg.byKind.system, total)} of context.</b> If this is a tool-heavy agent, consider pruning unused tools.</div>`);
+  }
+
+  if (share("thinking") > 0.15) {
+    out.push(`<div class="sug"><b>Thinking blocks are ${pctStr(agg.byKind.thinking, total)}.</b> Earlier thinking can usually be dropped if the final answer is already captured.</div>`);
+  }
+
+  if (out.length === 0) {
+    out.push(`<div class="sug ok">Nothing alarming. Context usage looks healthy.</div>`);
+  }
+  return out;
+}
+
+// ---------- Detailed view ----------
+function renderDetailed(s) {
+  const agg = aggregate(s);
+  const kindsPresent = AGGREGATE_ORDER.filter(k => agg.byKind[k]);
+  const filtersHTML = kindsPresent.map(k => {
+    const m = KIND_META[k];
+    const off = state.detail.kindsOff.has(k) ? "off" : "";
+    return `<span class="k ${off}" data-kind="${k}" style="background:var(${m.bg});color:var(${m.fg})">${k} \u00b7 ${fmt(agg.byKind[k])}</span>`;
+  }).join("");
+
+  document.getElementById("content").innerHTML = `
+    <div class="detailed">
+      <div class="detail-toolbar">
+        <input id="tree-search" placeholder="Search in this conversation\u2026" value="${escapeAttr(state.detail.search)}"/>
+        <button id="expand-all">Expand all</button>
+        <button id="collapse-all">Collapse all</button>
+        <div class="kind-filters">${filtersHTML}</div>
+      </div>
+      <div class="tree" id="tree"></div>
+    </div>
+  `;
+  renderTree(s.blocks, agg.total);
+
+  document.getElementById("tree-search").addEventListener("input", e => {
+    state.detail.search = e.target.value;
+    renderTree(s.blocks, agg.total);
+  });
+  document.getElementById("expand-all").onclick = () => setAll(true);
+  document.getElementById("collapse-all").onclick = () => setAll(false);
+  for (const k of document.querySelectorAll(".kind-filters .k")) {
+    k.addEventListener("click", () => {
+      const kind = k.dataset.kind;
+      if (state.detail.kindsOff.has(kind)) state.detail.kindsOff.delete(kind);
+      else state.detail.kindsOff.add(kind);
+      renderDetailed(s);
+    });
+  }
+}
+
+function renderTree(blocks, total) {
+  const root = document.getElementById("tree");
+  root.innerHTML = "";
+  const search = state.detail.search.trim().toLowerCase();
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < blocks.length; i++) {
+    const node = renderNode(blocks[i], 0, [i], total, search);
+    if (node) frag.appendChild(node);
+  }
+  root.appendChild(frag);
+}
+
+function matchesSearch(b, search) {
+  if (!search) return true;
+  if (b.label && b.label.toLowerCase().includes(search)) return true;
+  if (b.text  && b.text.toLowerCase().includes(search))  return true;
+  if (b.children) for (const c of b.children) if (matchesSearch(c, search)) return true;
+  return false;
+}
+
+function kindFiltered(b) { return state.detail.kindsOff.has(b.kind); }
+
+function renderNode(b, depth, path, total, search) {
+  if (!matchesSearch(b, search)) return null;
+  if (kindFiltered(b)) return null;
+  const wrap = document.createElement("div");
+  wrap.className = "node";
+  wrap.dataset.path = path.join(",");
+  const hasChildren = b.children && b.children.length;
+  const hasBody = !!(b.text && b.text.length);
+  const expandable = hasChildren || hasBody;
+  const open = depth < 1 && expandable;
+  if (open) wrap.classList.add("open");
+
+  const m = KIND_META[b.kind] || KIND_META.raw;
+  const pct = total ? (b.tokens / total) * 100 : 0;
+
+  const row = document.createElement("div");
+  row.className = "row";
+  row.innerHTML = `
+    <span class="caret ${expandable ? "" : "leaf"}">${expandable ? (open ? "\u25be" : "\u25b8") : "\u2022"}</span>
+    <span class="kind ${b.kind}">${(b.kind || "raw").replace("_", " ")}</span>
+    <span class="label"></span>
+    <span class="mini-bar" title="${pct.toFixed(2)}% of session"><div style="width:${Math.min(100, pct).toFixed(2)}%;background:var(${m.bar})"></div></span>
+    <span class="count">${fmt(b.tokens)} tok</span>
+  `;
+  row.querySelector(".label").textContent = b.label;
+  wrap.appendChild(row);
+
+  if (hasBody) {
+    const body = document.createElement("pre");
+    body.className = "body";
+    body.innerHTML = highlightMaybe(b.text, b.kind);
+    body.style.display = open ? "block" : "none";
+    wrap.appendChild(body);
+  }
+  if (hasChildren) {
+    const kids = document.createElement("div");
+    kids.className = "children";
+    kids.style.display = open ? "block" : "none";
+    for (let i = 0; i < b.children.length; i++) {
+      const cn = renderNode(b.children[i], depth + 1, [...path, i], total, search);
+      if (cn) kids.appendChild(cn);
+    }
+    wrap.appendChild(kids);
+  }
+
+  if (expandable) {
+    row.addEventListener("click", () => {
+      const isOpen = wrap.classList.toggle("open");
+      for (const el of wrap.children) {
+        if (el === row) continue;
+        el.style.display = isOpen ? "block" : "none";
+      }
+      const caret = row.querySelector(".caret");
+      caret.textContent = isOpen ? "\u25be" : "\u25b8";
+    });
+  }
+  return wrap;
+}
+
+function setAll(open) {
+  for (const n of document.querySelectorAll("#tree .node")) {
+    n.classList.toggle("open", open);
+    for (const el of n.children) {
+      if (el.classList.contains("row")) {
+        const caret = el.querySelector(".caret");
+        if (caret && !caret.classList.contains("leaf")) caret.textContent = open ? "\u25be" : "\u25b8";
+      } else {
+        el.style.display = open ? "block" : "none";
+      }
+    }
+  }
+}
+
+function jumpToDetail(path) {
+  state.tab = "detailed"; renderTab();
+  // after render, find node and open all ancestors
+  requestAnimationFrame(() => {
+    const selector = `.node[data-path="${path.join(",")}"]`;
+    const el = document.querySelector(selector);
+    if (!el) return;
+    let cur = el;
+    while (cur && cur.classList.contains("node")) {
+      cur.classList.add("open");
+      for (const child of cur.children) {
+        if (!child.classList.contains("row")) child.style.display = "block";
+      }
+      const caret = cur.querySelector(":scope > .row .caret");
+      if (caret && !caret.classList.contains("leaf")) caret.textContent = "\u25be";
+      cur = cur.parentElement?.closest(".node") || null;
+    }
+    el.classList.add("highlight");
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => el.classList.remove("highlight"), 1800);
+  });
+}
+
+// ---------- JSON / code highlighter (very small) ----------
+function highlightMaybe(text, kind) {
+  // try JSON highlighting for tool_use inputs
+  if ((kind === "tool_use" || kind === "tool_result") && /^[\s{[]/.test(text)) {
+    try {
+      const j = JSON.parse(text);
+      return highlightJSON(JSON.stringify(j, null, 2));
+    } catch { /* fall through */ }
+  }
+  return escapeHTML(text);
+}
+function highlightJSON(s) {
+  return escapeHTML(s)
+    .replace(/(&quot;(?:\\.|[^\\&])*?&quot;)(\s*:)/g,
+      '<span class="hl-key">$1</span>$2')
+    .replace(/: (&quot;(?:\\.|[^\\&])*?&quot;)/g,
+      ': <span class="hl-str">$1</span>')
+    .replace(/: (-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)/g,
+      ': <span class="hl-num">$1</span>')
+    .replace(/: (true|false)/g, ': <span class="hl-bool">$1</span>')
+    .replace(/: (null)/g, ': <span class="hl-null">$1</span>');
+}
+
+// ---------- utils ----------
+function fmt(n) {
+  if (n == null) return "0";
+  if (n < 1000) return String(Math.round(n));
+  return Math.round(n).toLocaleString();
+}
+function humanSize(bytes) {
+  if (bytes == null) return "";
+  const u = ["B", "KB", "MB", "GB"];
+  let i = 0, v = bytes;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return `${v < 10 && i > 0 ? v.toFixed(1) : Math.round(v)} ${u[i]}`;
+}
+function pctStr(n, total) { return total ? ((n / total) * 100).toFixed(1) + "%" : "0%"; }
+function escapeHTML(s) {
+  return (s ?? "").toString().replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function escapeAttr(s) { return escapeHTML(s); }
+
+// ---------- wiring ----------
+document.getElementById("q").addEventListener("input", e => {
+  state.query = e.target.value; renderList();
+});
+document.getElementById("hide-audit").addEventListener("change", e => {
+  state.hideAudit = e.target.checked; renderList();
+});
+for (const chip of document.querySelectorAll(".filters .chip")) {
+  chip.addEventListener("click", () => {
+    for (const c of document.querySelectorAll(".filters .chip")) c.classList.remove("on");
+    chip.classList.add("on");
+    state.filter = chip.dataset.filter; renderList();
+  });
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest(".tab");
+  if (t) { state.tab = t.dataset.tab; renderTab(); }
+});
+
+loadSessions();
+</script>
+</body>
+</html>

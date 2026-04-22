@@ -13,9 +13,12 @@ A tiny local web app that reads your Claude Code, Cowork, and Codex CLI session
 files and breaks down every token in the context window — system prompts, tool
 calls, tool results, framework injections, the hidden prologue, and more.
 
+<img width="1280" height="640" alt="social-preview" src="https://github.com/user-attachments/assets/ecdaf598-fc41-4a39-a370-21b07a785880" />
+
 [Quickstart](#quickstart) · [Features](#features) · [Configuration](#configuration) · [Privacy](#privacy) · [Changelog](#changelog)
 
 </div>
+
 
 ---
 

@@ -33,7 +33,52 @@
     --doc-bg: #eef3fb; --doc-fg: #38527c; --doc-bar: #7993b8;
     --meta-bg:#f1f2f4; --meta-fg:#6b7588; --meta-bar:#b8bec9;
     --raw-bg: #f1f2f4; --raw-fg: #6b7588; --raw-bar: #b8bec9;
+    --fw-bg:  #f7eef5; --fw-fg:  #843b75; --fw-bar:  #c674b0;
+    --compact-bg: #fde8e0; --compact-fg: #9a3d16; --compact-bar: #d9773f;
+    --metric-bg:  #edf6e8; --metric-fg:  #3d6a28; --metric-bar:  #7ca956;
+
+    /* Truncation banner */
+    --warn-bg: #fff3cd; --warn-border: #ffe08a; --warn-fg: #6b4c00;
+    --highlight-bg: #fff7e0; --highlight-flash: #ffe9a8; --highlight-border: #e0a020;
   }
+  [data-theme="dark"] {
+    --bg: #0f1320;
+    --bg-2: #171c2c;
+    --bg-3: #1f2436;
+    --bg-4: #2a3048;
+    --border: #2a3048;
+    --border-strong: #3a4160;
+    --fg: #e7ebf5;
+    --fg-2: #b7bdd0;
+    --fg-dim: #8690a8;
+    --fg-faint: #606b85;
+    --accent: #6b8cff;
+    --accent-weak: #1e2a55;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
+
+    --sys-bg: #2a1f44; --sys-fg: #c9aaff; --sys-bar: #9b74e0;
+    --usr-bg: #15304f; --usr-fg: #9cc6f5; --usr-bar: #4d94db;
+    --ast-bg: #123a25; --ast-fg: #a9e5c1; --ast-bar: #4fa877;
+    --tu-bg:  #3a2410; --tu-fg:  #f0b97a; --tu-bar:  #c4873a;
+    --tr-bg:  #3d1824; --tr-fg:  #f0a4b3; --tr-bar:  #c4536d;
+    --thk-bg: #1e2340; --thk-fg: #a3acdf; --thk-bar: #6c7bc4;
+    --txt-bg: #1d2233; --txt-fg: #9da7bf; --txt-bar: #6f7a95;
+    --img-bg: #132e2b; --img-fg: #8fccc3; --img-bar: #4f9387;
+    --doc-bg: #17263d; --doc-fg: #9ab0d5; --doc-bar: #6782a8;
+    --meta-bg:#1d2233; --meta-fg:#8690a8; --meta-bar:#555d75;
+    --raw-bg: #1d2233; --raw-fg: #8690a8; --raw-bar: #555d75;
+    --fw-bg:  #2e1a3a; --fw-fg:  #d9a4e8; --fw-bar:  #9a5ab3;
+    --compact-bg: #3a2210; --compact-fg: #f0a878; --compact-bar: #d9773f;
+    --metric-bg:  #1e2e17; --metric-fg:  #b5e090; --metric-bar:  #7ca956;
+
+    --warn-bg: #3a2c10; --warn-border: #6b5120; --warn-fg: #f0d280;
+    --highlight-bg: #3a2c10; --highlight-flash: #5d4418; --highlight-border: #d09040;
+  }
+  [data-theme="dark"] .hl-str { color: #6bd8b0; }
+  [data-theme="dark"] .hl-num { color: #f5a870; }
+  [data-theme="dark"] .hl-bool { color: #8aa3ff; }
+  [data-theme="dark"] .hl-key { color: #c9a0ff; }
+  [data-theme="dark"] .hl-null { color: #ee8aa0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
     font: 13.5px/1.5 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Inter",
@@ -49,7 +94,12 @@
     display: flex; flex-direction: column; min-width: 0; min-height: 0; }
   .sidebar header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
   .sidebar header .brand { display: flex; gap: 8px; align-items: center; }
-  .sidebar header h1 { margin: 0; font-size: 14px; letter-spacing: .2px; font-weight: 600; }
+  .sidebar header h1 { margin: 0; font-size: 14px; letter-spacing: .2px; font-weight: 600; flex: 1; }
+  .icon-btn { background: transparent; border: 1px solid var(--border-strong);
+    color: var(--fg-2); width: 26px; height: 26px; border-radius: 6px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; padding: 0;
+    font: inherit; font-size: 14px; line-height: 1; }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
   .logo-dot { width: 8px; height: 8px; border-radius: 50%;
     background: linear-gradient(135deg, var(--usr-bar), var(--ast-bar)); }
   .sidebar header .sub { color: var(--fg-faint); font-size: 11px; margin-top: 6px;
@@ -61,6 +111,27 @@
   .search input { width: 100%; padding: 8px 10px; border-radius: 6px; background: var(--bg);
     border: 1px solid var(--border-strong); color: var(--fg); outline: none; font: inherit; }
   .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+  .search-mode { display: flex; justify-content: space-between; align-items: center;
+    gap: 6px; margin-top: 6px; font-size: 11px; color: var(--fg-dim); }
+  .search-mode button { background: transparent; border: none; color: var(--fg-dim);
+    cursor: pointer; font: inherit; font-size: 11px; padding: 2px 4px; border-radius: 3px; }
+  .search-mode button:hover { color: var(--accent); background: var(--bg-3); }
+  .search-mode button.on { color: var(--accent); font-weight: 500; }
+  .search-hit { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .search-hit:hover { background: var(--bg-3); }
+  .search-hit .title { font-size: 13px; font-weight: 500; color: var(--fg); overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .search-hit .row2 { display: flex; justify-content: space-between; font-size: 11px;
+    color: var(--fg-dim); margin: 3px 0 6px; }
+  .search-hit .snippet { font-size: 11.5px; color: var(--fg-2); line-height: 1.4;
+    font-family: ui-monospace, Menlo, monospace;
+    background: var(--bg-3); border-left: 2px solid var(--border-strong);
+    padding: 3px 8px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+  .search-hit .snippet mark { background: var(--warn-bg); color: var(--fg);
+    padding: 0 2px; border-radius: 2px; }
+  .search-hit .more { font-size: 11px; color: var(--fg-faint); margin-top: 3px; }
+  .search-status { padding: 16px 14px; font-size: 12px; color: var(--fg-dim); text-align: center; }
 
   .filters { padding: 8px 12px; display: flex; gap: 6px; flex-wrap: wrap;
     border-bottom: 1px solid var(--border); }
@@ -72,6 +143,10 @@
   .toggle-row { padding: 6px 14px 10px; display: flex; gap: 10px; align-items: center;
     font-size: 11px; color: var(--fg-dim); border-bottom: 1px solid var(--border); }
   .toggle-row label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--fg-faint); margin-right: 4px; vertical-align: 1px;
+    transition: background .25s, box-shadow .25s; }
+  .live-dot.on { background: var(--ast-bar); box-shadow: 0 0 0 3px var(--ast-bg); }
 
   .sess-list { overflow-y: auto; flex: 1; min-height: 0; }
   .sess { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
@@ -87,6 +162,8 @@
   .badge.claude { color: var(--ast-fg); background: var(--ast-bg); }
   .badge.codex  { color: var(--usr-fg); background: var(--usr-bg); }
   .badge.audit  { color: var(--meta-fg); background: var(--meta-bg); }
+  .badge.sub    { color: var(--fw-fg);  background: var(--fw-bg);
+    font-variant-numeric: tabular-nums; }
 
   /* ---------- main ---------- */
   .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
@@ -98,6 +175,16 @@
     text-overflow: ellipsis; white-space: nowrap; }
   .main header .path { color: var(--fg-faint); font-size: 11px; margin-top: 4px;
     overflow-wrap: anywhere; }
+  .main header .ctx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .ctx-chip { font-size: 10.5px; padding: 2px 7px; border-radius: 4px;
+    background: var(--bg-3); color: var(--fg-2); border: 1px solid var(--border);
+    font-family: ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
+  .ctx-chip .k { color: var(--fg-dim); margin-right: 4px; }
+  .ctx-chip.entry { background: var(--accent-weak); color: var(--accent);
+    border-color: var(--accent-weak); }
+  .ctx-chip.sub-agent { background: var(--fw-bg); color: var(--fw-fg);
+    border-color: var(--fw-bg); cursor: pointer; }
+  .ctx-chip.sub-agent:hover { border-color: var(--fw-bar); }
   .tabs { display: flex; gap: 0; margin-top: 14px; border-bottom: 1px solid var(--border);
     margin: 14px -24px -12px; padding: 0 24px; }
   .tab { padding: 8px 14px; cursor: pointer; font-size: 13px; color: var(--fg-dim);
@@ -119,18 +206,21 @@
   .loading-card .hint { color: var(--fg-faint); font-size: 11px; margin-top: 4px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .trunc-banner { background: #fff3cd; border: 1px solid #ffe08a; color: #6b4c00;
+  .trunc-banner { background: var(--warn-bg); border: 1px solid var(--warn-border);
+    color: var(--warn-fg);
     padding: 10px 14px; border-radius: 8px; margin-bottom: 18px; font-size: 13px; }
 
   /* ---------- Simple view ---------- */
   .simple { padding: 28px 40px 60px; max-width: none; }
-  .hero { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr));
-    gap: 14px; margin-bottom: 22px; max-width: 1200px; }
+  .hero { display: grid; grid-template-columns: repeat(5, minmax(180px, 1fr));
+    gap: 14px; margin-bottom: 22px; max-width: 1400px; }
   .card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
     padding: 14px 16px; box-shadow: var(--shadow); }
   .card.kpi .value { font-size: 22px; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
   .card.kpi .value.warn { color: #c46500; }
   .card.kpi .value.alert { color: #c4314b; }
+  [data-theme="dark"] .card.kpi .value.warn { color: #f0a850; }
+  [data-theme="dark"] .card.kpi .value.alert { color: #ee7588; }
   .card.kpi .label { font-size: 11px; color: var(--fg-dim); text-transform: uppercase;
     letter-spacing: .05em; margin-top: 4px; }
 
@@ -169,6 +259,22 @@
     color: var(--fg-2); font-size: 12px; }
   .kind-pill { font-size: 10.5px; text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
     letter-spacing: .04em; text-align: center; }
+  .tool-jump { display: inline-block; margin-left: 6px; padding: 0 5px;
+    font-size: 10.5px; color: var(--fg-dim); border: 1px solid var(--border);
+    border-radius: 3px; cursor: pointer; user-select: none; vertical-align: 1px;
+    font-family: ui-monospace, monospace; }
+  .tool-jump:hover { color: var(--accent); border-color: var(--accent); }
+  .perm-badge { display: inline-block; margin-left: 6px; padding: 0 6px;
+    font-size: 10px; letter-spacing: .04em; text-transform: uppercase;
+    border-radius: 3px; vertical-align: 1px; }
+  .perm-badge.plan             { background: var(--thk-bg); color: var(--thk-fg); }
+  .perm-badge.bypassPermissions { background: var(--tr-bg); color: var(--tr-fg); }
+  .perm-badge.acceptEdits      { background: var(--tu-bg); color: var(--tu-fg); }
+  .cost-badge { display: inline-block; margin-left: 8px; padding: 0 6px;
+    font-size: 11px; background: var(--ast-bg); color: var(--ast-fg);
+    border-radius: 3px; font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, monospace; }
+  .cost-badge.big { background: var(--tr-bg); color: var(--tr-fg); font-weight: 500; }
 
   .growth { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
     padding: 14px 16px; box-shadow: var(--shadow); }
@@ -182,6 +288,35 @@
   .growth .cum-line { fill: none; stroke: var(--accent); stroke-width: 1.8;
     vector-effect: non-scaling-stroke; }
   .growth .cum-dot { fill: var(--accent); }
+  .growth .compact-line { stroke: var(--compact-bar); stroke-width: 1.6;
+    stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; opacity: .85; }
+  .growth .compact-label { position: absolute; font-size: 10.5px;
+    color: var(--compact-fg); font-weight: 500; background: var(--compact-bg);
+    padding: 1px 5px; border-radius: 3px; transform: translateX(-50%);
+    white-space: nowrap; pointer-events: none; }
+  .growth .chart-wrap { cursor: crosshair; }
+  .growth .turn-hover { position: absolute; top: 0; pointer-events: none;
+    background: var(--fg-faint); opacity: 0; transition: opacity .08s; }
+  .growth .turn-hover.on { opacity: .12; }
+  .growth .turn-tooltip { position: absolute; display: none; pointer-events: none;
+    background: var(--bg-2); border: 1px solid var(--border-strong);
+    border-radius: 6px; padding: 8px 10px; font-size: 11.5px; line-height: 1.5;
+    box-shadow: 0 4px 14px rgba(0,0,0,.15); z-index: 20; min-width: 220px;
+    max-width: 320px; color: var(--fg); white-space: normal; }
+  .growth .turn-tooltip.on { display: block; }
+  .growth .turn-tooltip h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600;
+    color: var(--fg); letter-spacing: .02em; }
+  .growth .turn-tooltip .kv { display: flex; justify-content: space-between;
+    gap: 10px; font-size: 11.5px; padding: 1px 0; }
+  .growth .turn-tooltip .kv .k { color: var(--fg-2); }
+  .growth .turn-tooltip .kv .v { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .growth .turn-tooltip .sw { display: inline-block; width: 8px; height: 8px;
+    border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
+  .growth .turn-tooltip .total { border-top: 1px solid var(--border);
+    margin-top: 5px; padding-top: 5px; }
+  .growth .turn-tooltip .total .v { font-weight: 600; }
+  .growth .turn-tooltip .note { margin-top: 5px; font-size: 10.5px;
+    color: var(--compact-fg); }
   .growth .axis-bottom { stroke: var(--border-strong); vector-effect: non-scaling-stroke; }
   .growth .tick { position: absolute; font-size: 11px; color: var(--fg-dim);
     font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap;
@@ -203,6 +338,56 @@
     cursor: pointer; }
   .limit-select:focus { outline: none; border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-weak); }
+
+  /* Latency panel */
+  .latency { background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .latency .head { display: flex; justify-content: space-between; align-items: baseline;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .latency .stats { display: flex; gap: 18px; font-size: 12px; color: var(--fg-dim); }
+  .latency .stats b { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .latency .bars { display: flex; align-items: flex-end; gap: 3px;
+    height: 120px; overflow-x: auto; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .latency .bar { flex: 0 0 auto; width: 14px; background: var(--metric-bar);
+    border-radius: 2px 2px 0 0; min-height: 2px; position: relative;
+    cursor: default; }
+  .latency .bar.slow  { background: var(--compact-bar); }
+  .latency .bar:hover { filter: brightness(1.1); }
+  .latency .x-axis { display: flex; gap: 3px; overflow-x: auto; padding: 4px 0 0;
+    font-size: 10px; color: var(--fg-faint); font-variant-numeric: tabular-nums; }
+  .latency .x-axis span { flex: 0 0 auto; width: 14px; text-align: center; }
+  .latency .note { font-size: 11px; color: var(--fg-faint); margin-top: 8px; }
+
+  /* Overhead panel */
+  .overhead { background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .overhead .ov-head { display: flex; justify-content: space-between;
+    align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+  .overhead .ov-summary { font-size: 13px; color: var(--fg-2); }
+  .overhead .ov-summary b { color: var(--fg); font-weight: 600; }
+  .overhead .ov-summary .val { font-variant-numeric: tabular-nums; }
+  .overhead .ov-summary.warn b { color: #c46500; }
+  .overhead .ov-summary.alert b { color: #c4314b; }
+  [data-theme="dark"] .overhead .ov-summary.warn b { color: #f0a850; }
+  [data-theme="dark"] .overhead .ov-summary.alert b { color: #ee7588; }
+  .overhead table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .overhead td { padding: 6px 8px; vertical-align: baseline;
+    border-bottom: 1px dotted var(--border); }
+  .overhead tr:last-child td { border-bottom: none; }
+  .overhead td.label { color: var(--fg-2); }
+  .overhead td.label .hint { color: var(--fg-faint); font-size: 11px;
+    margin-top: 2px; line-height: 1.4; }
+  .overhead td.bar { width: 40%; }
+  .overhead td.bar .b { height: 6px; background: var(--bg-3); border-radius: 3px;
+    overflow: hidden; }
+  .overhead td.bar .b > div { height: 100%; background: var(--fw-bar); }
+  .overhead td.tok { text-align: right; width: 110px;
+    font-variant-numeric: tabular-nums; color: var(--fg); }
+  .overhead td.pct { text-align: right; width: 60px; color: var(--fg-dim);
+    font-variant-numeric: tabular-nums; }
+  .overhead .inferred td.tok::after { content: " ~"; color: var(--fg-faint); }
+  .overhead .note { font-size: 11px; color: var(--fg-faint); margin-top: 12px;
+    line-height: 1.5; }
 
   .suggestions { display: grid; gap: 10px; }
   .sug { background: var(--bg-2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
@@ -233,14 +418,19 @@
   .tree { padding: 8px 0 40px; }
   .node { position: relative; }
   .node > .row { display: grid;
-    grid-template-columns: 14px 90px 1fr 110px 88px;
+    grid-template-columns: 14px 90px 1fr 110px 150px;
     gap: 10px; padding: 5px 24px 5px 10px; align-items: center;
     cursor: pointer; border-bottom: 1px dotted transparent; border-left: 2px solid transparent; }
   .node > .row:hover { background: var(--bg-3); }
   .node.open > .row { background: var(--bg-3); }
-  .node.highlight > .row { background: #fff7e0; border-left-color: #e0a020;
-    animation: flash 1.6s ease-out; }
-  @keyframes flash { 0%,25% { background: #ffe9a8; } 100% { background: #fff7e0; } }
+  .node.highlight > .row { background: var(--highlight-bg);
+    border-left-color: var(--highlight-border); animation: flash 1.6s ease-out; }
+  .node.compact-ref > .row .label { text-decoration: line-through;
+    text-decoration-thickness: 1px; opacity: .65; }
+  .node.compact-ref > .row .label::after { content: " (purged by /compact)";
+    font-size: 10px; color: var(--fg-faint); font-style: italic;
+    text-decoration: none; opacity: 1; margin-left: 4px; }
+  @keyframes flash { 0%,25% { background: var(--highlight-flash); } 100% { background: var(--highlight-bg); } }
   .caret { color: var(--fg-faint); font-family: monospace; user-select: none;
     text-align: center; font-size: 11px; }
   .caret.leaf { visibility: hidden; }
@@ -255,13 +445,20 @@
   .kind.text      { background: var(--txt-bg); color: var(--txt-fg); }
   .kind.image     { background: var(--img-bg); color: var(--img-fg); }
   .kind.document  { background: var(--doc-bg); color: var(--doc-fg); }
+  .kind.framework { background: var(--fw-bg);  color: var(--fw-fg); }
+  .kind.compact   { background: var(--compact-bg); color: var(--compact-fg); }
+  .kind.metric    { background: var(--metric-bg);  color: var(--metric-fg); }
   .kind.meta      { background: var(--meta-bg);color: var(--meta-fg); }
   .kind.raw       { background: var(--raw-bg); color: var(--raw-fg); }
 
   .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
   .mini-bar { height: 6px; background: var(--bg-3); border-radius: 3px; overflow: hidden;
-    border: 1px solid var(--border); }
+    border: 1px solid var(--border); display: flex; }
   .mini-bar > div { height: 100%; }
+  /* Left segment: cumulative content up to (but not including) this block — dim */
+  .mini-bar .cum-before { background: var(--fg-faint); opacity: .35; }
+  /* Right segment: this block's own contribution — solid kind color */
+  .mini-bar .cum-own { opacity: .95; }
   .count { text-align: right; font-size: 11.5px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
 
   .body { padding: 6px 24px 12px 48px; color: var(--fg-2); white-space: pre-wrap;
@@ -277,11 +474,190 @@
   .hl-key { color: #5d3da8; }
   .hl-null { color: #a14960; }
 
+  /* Tool cards */
+  .tc { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12.5px;
+    color: var(--fg); white-space: normal; line-height: 1.5; }
+  .tc .tc-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 8px; }
+  .tc .tc-tool { font-weight: 600; color: var(--tu-fg); background: var(--tu-bg);
+    padding: 1px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .04em; }
+  .tc .tc-path { font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+    color: var(--fg-2); background: var(--bg-4); padding: 1px 6px; border-radius: 3px;
+    overflow-wrap: anywhere; }
+  .tc .tc-desc { color: var(--fg-dim); font-size: 12px; }
+  .tc .tc-cmd { font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+    background: var(--bg-4); border: 1px solid var(--border); border-radius: 5px;
+    padding: 8px 10px; white-space: pre-wrap; word-break: break-word;
+    color: var(--fg); margin: 4px 0; }
+  .tc .tc-cmd .tc-prompt { color: var(--fg-faint); user-select: none; margin-right: 6px; }
+  .tc .tc-grid { display: grid; grid-template-columns: 90px 1fr; gap: 4px 12px;
+    font-size: 12px; color: var(--fg-2); }
+  .tc .tc-grid .k { color: var(--fg-dim); }
+  .tc .tc-grid .v { color: var(--fg); font-family: ui-monospace, Menlo, monospace;
+    overflow-wrap: anywhere; }
+  .tc .tc-diff { background: var(--bg-4); border: 1px solid var(--border); border-radius: 5px;
+    overflow: hidden; margin: 4px 0; font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px; }
+  .tc .tc-diff .line { padding: 1px 10px; white-space: pre-wrap; }
+  .tc .tc-diff .old { background: rgba(216,74,96,.1); color: var(--tr-fg);
+    border-left: 2px solid var(--tr-bar); }
+  .tc .tc-diff .new { background: rgba(82,166,121,.12); color: var(--ast-fg);
+    border-left: 2px solid var(--ast-bar); }
+  .tc .tc-url { color: var(--accent); font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px; word-break: break-all; }
+  .tc .tc-todos { list-style: none; padding: 0; margin: 4px 0; }
+  .tc .tc-todos li { padding: 2px 0; display: flex; gap: 8px; align-items: baseline;
+    font-size: 12.5px; }
+  .tc .tc-todos li .mark { font-family: ui-monospace, monospace; color: var(--fg-dim);
+    width: 22px; flex: 0 0 auto; text-align: center; }
+  .tc .tc-todos li.done .text { color: var(--fg-dim); text-decoration: line-through; }
+  .tc .tc-todos li.in_progress .text { color: var(--accent); font-weight: 500; }
+  .tc .tc-toggle-raw { font-size: 11px; color: var(--fg-dim); margin-top: 8px;
+    cursor: pointer; text-decoration: underline; display: inline-block;
+    text-decoration-style: dotted; }
+  .tc .tc-toggle-raw:hover { color: var(--accent); }
+  .tc .tc-raw { display: none; margin-top: 6px; background: var(--bg-3);
+    border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11.5px;
+    white-space: pre-wrap; max-height: 240px; overflow: auto; }
+  .tc.raw-on .tc-raw { display: block; }
+
+  /* Persisted tool-result panel */
+  .persisted { margin: 4px 16px 4px 38px; background: var(--bg-3);
+    border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .persisted .p-head { display: flex; justify-content: space-between;
+    align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .persisted .p-head .info { font-size: 12px; color: var(--fg-2); }
+  .persisted .p-head .info b { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .persisted .p-head .info .muted { color: var(--fg-dim); }
+  .persisted button { background: var(--bg-2); color: var(--fg-2);
+    border: 1px solid var(--border-strong); padding: 3px 10px; border-radius: 4px;
+    cursor: pointer; font: inherit; font-size: 11.5px; margin-right: 6px; }
+  .persisted button:hover { border-color: var(--accent); color: var(--accent); }
+  .persisted button:disabled { opacity: .5; cursor: progress; }
+  .persisted .p-content { display: none; margin-top: 8px; padding: 8px 10px;
+    background: var(--bg-4); border: 1px solid var(--border); border-radius: 4px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11.5px;
+    white-space: pre-wrap; word-break: break-word; max-height: 520px;
+    overflow: auto; color: var(--fg); }
+  .persisted.open-stdout .p-content.stdout,
+  .persisted.open-full .p-content.full { display: block; }
+  .persisted .p-note { font-size: 11px; color: var(--fg-faint); margin-top: 6px; }
+
+  /* Export menu + per-block copy */
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .export-menu { position: relative; }
+  .export-menu > button { background: var(--bg); color: var(--fg-2);
+    border: 1px solid var(--border-strong); padding: 5px 10px; border-radius: 5px;
+    cursor: pointer; font: inherit; font-size: 12px; }
+  .export-menu > button:hover { border-color: var(--accent); color: var(--accent); }
+  .export-menu .menu { display: none; position: absolute; right: 0; top: calc(100% + 4px);
+    background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.12); min-width: 180px; z-index: 10;
+    overflow: hidden; }
+  .export-menu.on .menu { display: block; }
+  .export-menu .menu a { display: flex; justify-content: space-between; gap: 12px;
+    padding: 8px 12px; color: var(--fg-2); text-decoration: none; font-size: 13px; }
+  .export-menu .menu a:hover { background: var(--bg-3); color: var(--accent); }
+  .export-menu .menu a .ext { color: var(--fg-faint); font-size: 11px;
+    font-family: ui-monospace, monospace; }
+  .body-copy { position: absolute; top: 4px; right: 6px; background: var(--bg-2);
+    border: 1px solid var(--border); border-radius: 4px; color: var(--fg-dim);
+    font-size: 10.5px; padding: 2px 6px; cursor: pointer; opacity: 0;
+    transition: opacity .15s; font: inherit; font-size: 10.5px; z-index: 2; }
+  .body-copy:hover { color: var(--accent); border-color: var(--accent); }
+  .body-wrap { position: relative; }
+  .body-wrap:hover .body-copy,
+  .body-copy.copied { opacity: 1; }
+  .body-copy.copied { color: var(--ast-fg); border-color: var(--ast-bar); }
+
+  /* Markdown rendering */
+  .md { white-space: normal; font-family: inherit; font-size: 12.5px; line-height: 1.55; color: var(--fg); }
+  .md h1, .md h2, .md h3, .md h4 { margin: 10px 0 6px; color: var(--fg); font-weight: 600; }
+  .md h1 { font-size: 16px; } .md h2 { font-size: 14px; } .md h3 { font-size: 13px; } .md h4 { font-size: 12.5px; }
+  .md p { margin: 6px 0; }
+  .md ul, .md ol { margin: 6px 0; padding-left: 22px; }
+  .md li { margin: 2px 0; }
+  .md code { background: var(--bg-4); padding: 1px 4px; border-radius: 3px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--fg); }
+  .md pre { background: var(--bg-4); border: 1px solid var(--border);
+    border-radius: 5px; padding: 9px 12px; margin: 8px 0; overflow-x: auto;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--fg); }
+  .md pre code { background: transparent; padding: 0; }
+  .md blockquote { margin: 6px 0; padding: 4px 12px; border-left: 3px solid var(--border-strong);
+    color: var(--fg-2); background: var(--bg-3); }
+  .md a { color: var(--accent); text-decoration: underline; }
+  .md hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
+  .md strong { font-weight: 600; color: var(--fg); }
+  .md em { font-style: italic; }
+
+  /* ANSI terminal palette (shared light/dark; dark overrides below) */
+  .ansi-b { font-weight: 600; }
+  .ansi-d { opacity: .7; }
+  .ansi-i { font-style: italic; }
+  .ansi-u { text-decoration: underline; }
+  .ansi-r { background: var(--fg-2); color: var(--bg-2); padding: 0 2px; }
+  .ansi-fg-0  { color: #2c2c2c; }  /* black */
+  .ansi-fg-1  { color: #c03030; }  /* red */
+  .ansi-fg-2  { color: #0b7a3a; }  /* green */
+  .ansi-fg-3  { color: #a66000; }  /* yellow */
+  .ansi-fg-4  { color: #1f5bb8; }  /* blue */
+  .ansi-fg-5  { color: #8b3aa8; }  /* magenta */
+  .ansi-fg-6  { color: #1b7e8a; }  /* cyan */
+  .ansi-fg-7  { color: #555555; }  /* white (gray on light) */
+  .ansi-fg-8  { color: #808080; }  /* bright black */
+  .ansi-fg-9  { color: #d84040; }
+  .ansi-fg-10 { color: #189957; }
+  .ansi-fg-11 { color: #c88b1a; }
+  .ansi-fg-12 { color: #4b7fd8; }
+  .ansi-fg-13 { color: #b35cd8; }
+  .ansi-fg-14 { color: #2ea4b4; }
+  .ansi-fg-15 { color: #222222; }
+  [data-theme="dark"] .ansi-fg-0  { color: #888888; }
+  [data-theme="dark"] .ansi-fg-1  { color: #f08080; }
+  [data-theme="dark"] .ansi-fg-2  { color: #8de0a0; }
+  [data-theme="dark"] .ansi-fg-3  { color: #f0c878; }
+  [data-theme="dark"] .ansi-fg-4  { color: #8fafff; }
+  [data-theme="dark"] .ansi-fg-5  { color: #e0a0ff; }
+  [data-theme="dark"] .ansi-fg-6  { color: #80d8e0; }
+  [data-theme="dark"] .ansi-fg-7  { color: #d0d0d0; }
+  [data-theme="dark"] .ansi-fg-8  { color: #9a9a9a; }
+  [data-theme="dark"] .ansi-fg-9  { color: #ff9a9a; }
+  [data-theme="dark"] .ansi-fg-10 { color: #a0eab4; }
+  [data-theme="dark"] .ansi-fg-11 { color: #ffd88e; }
+  [data-theme="dark"] .ansi-fg-12 { color: #a8bfff; }
+  [data-theme="dark"] .ansi-fg-13 { color: #ecb0ff; }
+  [data-theme="dark"] .ansi-fg-14 { color: #9ce0e8; }
+  [data-theme="dark"] .ansi-fg-15 { color: #f0f0f0; }
+
+  /* Shortcuts overlay */
+  .shortcuts-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4);
+    display: none; align-items: center; justify-content: center; z-index: 100; }
+  .shortcuts-overlay.on { display: flex; }
+  .shortcuts-overlay .panel { background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 24px; min-width: 340px; max-width: 480px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.25); color: var(--fg); }
+  .shortcuts-overlay h3 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--fg-2); }
+  .shortcuts-overlay .row { display: flex; justify-content: space-between; gap: 16px;
+    padding: 5px 0; font-size: 13px; color: var(--fg-2); }
+  .shortcuts-overlay .row kbd { background: var(--bg-3); border: 1px solid var(--border-strong);
+    border-radius: 4px; padding: 1px 7px; font: inherit; font-size: 11.5px;
+    font-family: ui-monospace, monospace; color: var(--fg); min-width: 18px;
+    text-align: center; display: inline-block; }
+  .shortcuts-overlay .row kbd + kbd { margin-left: 4px; }
+  .shortcuts-overlay .close-hint { text-align: center; font-size: 11px; color: var(--fg-faint);
+    margin-top: 14px; }
+
   /* Responsive-ish */
+  @media (max-width: 1200px) {
+    .hero { grid-template-columns: repeat(3, 1fr); }
+  }
   @media (max-width: 900px) {
     .hero { grid-template-columns: 1fr 1fr; }
     .app { grid-template-columns: 260px 1fr; }
-    .node > .row { grid-template-columns: 12px 80px 1fr 80px 68px; padding-right: 12px; }
+    .node > .row { grid-template-columns: 12px 80px 1fr 80px 120px; padding-right: 12px; }
   }
 </style>
 </head>
@@ -289,10 +665,27 @@
 <div class="app">
   <aside class="sidebar">
     <header>
-      <div class="brand"><span class="logo-dot"></span><h1>Context Viewer</h1></div>
+      <div class="brand">
+        <span class="logo-dot"></span>
+        <h1>Context Viewer</h1>
+        <button id="theme-toggle" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">&#x25D0;</button>
+      </div>
       <div class="sub" id="roots"></div>
     </header>
-    <div class="search"><input id="q" placeholder="Search conversations" autocomplete="off" /></div>
+    <div class="search">
+      <input id="q" placeholder="Filter conversations by title" autocomplete="off" />
+      <div class="search-mode">
+        <span>
+          <button id="mode-filter" class="on">Filter titles</button>
+          &middot;
+          <button id="mode-global">Search contents</button>
+        </span>
+        <span id="search-opts" style="display:none">
+          <label style="cursor:pointer"><input type="checkbox" id="search-regex" style="vertical-align:-1px"/> regex</label>
+          <label style="cursor:pointer;margin-left:6px"><input type="checkbox" id="search-case" style="vertical-align:-1px"/> case</label>
+        </span>
+      </div>
+    </div>
     <div class="filters">
       <span class="chip on" data-filter="all">All</span>
       <span class="chip" data-filter="claude">Claude</span>
@@ -300,7 +693,7 @@
     </div>
     <div class="toggle-row">
       <label><input type="checkbox" id="hide-audit" checked /> Hide audit logs</label>
-      <span id="session-count" style="margin-left:auto"></span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center"><span id="live-indicator" class="live-dot" title="Reconnecting…"></span><span id="session-count"></span></span>
     </div>
     <div class="sess-list" id="sess-list"></div>
   </aside>
@@ -311,6 +704,17 @@
         <div style="min-width:0">
           <h2 id="title">Select a conversation</h2>
           <div class="path" id="path"></div>
+          <div class="ctx-chips" id="ctx-chips"></div>
+        </div>
+        <div class="header-actions" id="header-actions" style="display:none">
+          <div class="export-menu" id="export-menu">
+            <button id="export-btn" title="Export this conversation">Export ▾</button>
+            <div class="menu" role="menu">
+              <a data-fmt="md"   href="#"><span>Markdown</span><span class="ext">.md</span></a>
+              <a data-fmt="json" href="#"><span>JSON</span><span class="ext">.json</span></a>
+              <a data-fmt="html" href="#"><span>Standalone HTML</span><span class="ext">.html</span></a>
+            </div>
+          </div>
         </div>
       </div>
       <div class="tabs" id="tabs" style="display:none">
@@ -325,7 +729,36 @@
   </section>
 </div>
 
+<div id="shortcuts-overlay" class="shortcuts-overlay" role="dialog" aria-label="Keyboard shortcuts">
+  <div class="panel">
+    <h3>Keyboard shortcuts</h3>
+    <div class="row"><span>Next / previous session</span><span><kbd>j</kbd><kbd>k</kbd></span></div>
+    <div class="row"><span>Focus search</span><span><kbd>/</kbd></span></div>
+    <div class="row"><span>Simple / Detailed tab</span><span><kbd>g</kbd><kbd>s</kbd> &middot; <kbd>g</kbd><kbd>d</kbd></span></div>
+    <div class="row"><span>Expand / collapse all</span><span><kbd>]</kbd><kbd>[</kbd></span></div>
+    <div class="row"><span>Toggle theme</span><span><kbd>t</kbd></span></div>
+    <div class="row"><span>Show this overlay</span><span><kbd>?</kbd></span></div>
+    <div class="row"><span>Clear / dismiss</span><span><kbd>Esc</kbd></span></div>
+    <div class="close-hint">Press <kbd>Esc</kbd> or <kbd>?</kbd> to close</div>
+  </div>
+</div>
+
 <script>
+// ---------- theme ----------
+(function initTheme() {
+  let pref = null;
+  try { pref = localStorage.getItem("cv-theme"); } catch {}
+  const mql = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+  const theme = pref || (mql && mql.matches ? "dark" : "light");
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme") || "light";
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("cv-theme", next); } catch {}
+}
+
 // ---------- context-limit lookup ----------
 // Patterns are matched in order. First match wins. Claude / OpenAI families
 // as of April 2026 — if something looks wrong, override via the picker.
@@ -361,6 +794,131 @@ const LIMIT_PRESETS = [
   { key: "1m",    label: "1M",     value: 1000000 },
 ];
 
+// ---------- pricing ----------
+// Prices per million tokens, USD. Anthropic cache_write = 5-minute TTL tier
+// (1.25x input); cache_read = 0.1x input. Verified against the Anthropic
+// pricing docs (platform.claude.com/docs/en/about-claude/pricing) and the
+// OpenAI pricing page (developers.openai.com/api/docs/pricing) on 2026-04-22.
+// Edit if they drift. Ordering matters — first matching regex wins, so put the
+// more specific patterns (variants / nano / mini) ahead of the generic family.
+const PRICES = [
+  // Anthropic — Claude Opus 4.5 / 4.6 / 4.7 (current cheaper tier)
+  [/^claude-opus-4-(5|6|7)/i,     { input: 5,    cache_write: 6.25,  cache_read: 0.50, output: 25   }],
+  // Anthropic — Claude Opus 4.0 / 4.1 and all legacy Opus 3 (legacy tier)
+  [/^claude-opus-4-1/i,           { input: 15,   cache_write: 18.75, cache_read: 1.50, output: 75   }],
+  [/^claude-opus-4/i,             { input: 15,   cache_write: 18.75, cache_read: 1.50, output: 75   }],
+  [/^claude-opus-3|^claude-3-opus/i, { input: 15, cache_write: 18.75, cache_read: 1.50, output: 75   }],
+  // Anthropic — Sonnet 4.x (and 3.5 / 3.7 share the same $3/$15 rate; 1M ctx billed at std)
+  [/^claude-sonnet-4/i,           { input: 3,    cache_write: 3.75,  cache_read: 0.30, output: 15   }],
+  [/^claude-3-7-sonnet|^claude-sonnet-3-7/i, { input: 3, cache_write: 3.75, cache_read: 0.30, output: 15 }],
+  [/^claude-3-5-sonnet|^claude-sonnet-3-5/i, { input: 3, cache_write: 3.75, cache_read: 0.30, output: 15 }],
+  // Anthropic — Haiku 4.5
+  [/^claude-haiku-4/i,            { input: 1,    cache_write: 1.25,  cache_read: 0.10, output: 5    }],
+  // Anthropic — Haiku 3.5 ($0.80/$4)
+  [/^claude-3-5-haiku|^claude-haiku-3-5/i, { input: 0.80, cache_write: 1, cache_read: 0.08, output: 4 }],
+  // Anthropic — Haiku 3 ($0.25/$1.25)
+  [/^claude-3-haiku|^claude-haiku-3/i,     { input: 0.25, cache_write: 0.30, cache_read: 0.03, output: 1.25 }],
+
+  // OpenAI — GPT-5.4 family (current flagship as of 2026-04)
+  [/^gpt-5\.4-nano/i,             { input: 0.20, cache_read: 0.02,   output: 1.25 }],
+  [/^gpt-5\.4-mini/i,             { input: 0.75, cache_read: 0.075,  output: 4.50 }],
+  [/^gpt-5\.4-pro/i,              { input: 30,                       output: 180  }],
+  [/^gpt-5\.4/i,                  { input: 2.50, cache_read: 0.25,   output: 15   }],
+  // OpenAI — GPT-5.3 (chat-latest / codex)
+  [/^gpt-5\.3(-chat|-codex)?/i,   { input: 1.75, cache_read: 0.175,  output: 14   }],
+  // OpenAI — generic GPT-5 fallback (priced as 5.4 baseline)
+  [/^gpt-5/i,                     { input: 2.50, cache_read: 0.25,   output: 15   }],
+  // OpenAI — GPT-4.1 family
+  [/^gpt-4\.1-nano/i,             { input: 0.10,                     output: 0.40 }],
+  [/^gpt-4\.1-mini/i,             { input: 0.40,                     output: 1.60 }],
+  [/^gpt-4\.1/i,                  { input: 2,    cache_read: 0.50,   output: 8    }],
+  // OpenAI — GPT-4o family (legacy pricing)
+  [/^gpt-4o-mini/i,               { input: 0.15, cache_read: 0.075,  output: 0.60 }],
+  [/^gpt-4o/i,                    { input: 2.50, cache_read: 1.25,   output: 10   }],
+  [/^gpt-4-turbo/i,               { input: 10,                       output: 30   }],
+  // OpenAI — reasoning models (o-series)
+  [/^o4-mini/i,                   { input: 4,    cache_read: 1,      output: 16   }],
+  [/^o3-mini/i,                   { input: 1.10, cache_read: 0.55,   output: 4.40 }],
+  [/^o3-deep-research/i,          { input: 10,                       output: 40   }],
+  [/^o3/i,                        { input: 2,    cache_read: 0.50,   output: 8    }],
+  [/^o1-pro/i,                    { input: 150,                      output: 600  }],
+  [/^o1-mini/i,                   { input: 3,    cache_read: 1.50,   output: 12   }],
+  [/^o1/i,                        { input: 15,   cache_read: 7.50,   output: 60   }],
+];
+function priceForModel(model) {
+  if (!model) return null;
+  for (const [re, p] of PRICES) if (re.test(model)) return p;
+  return null;
+}
+// Walk the session tree, summing up `usage` deltas on assistant blocks.
+// Returns { input, cache_write, cache_read, output, hasUsage }.
+function aggregateUsage(blocks) {
+  const acc = { input: 0, cache_write: 0, cache_read: 0, output: 0, hasUsage: false };
+  const recur = (list) => {
+    for (const b of list) {
+      const u = b.meta && b.meta.usage;
+      if (u && typeof u === "object") {
+        acc.hasUsage = true;
+        acc.input       += u.input_tokens || 0;
+        acc.cache_write += u.cache_creation_input_tokens || 0;
+        acc.cache_read  += u.cache_read_input_tokens || 0;
+        acc.output      += u.output_tokens || 0;
+      }
+      if (b.children && b.children.length) recur(b.children);
+    }
+  };
+  recur(blocks);
+  return acc;
+}
+// Compute cost for a session. If usage data is present, prefer it; otherwise
+// estimate from tiktoken counts using the model's input rate (coarse).
+function sessionCost(session, totalTokens) {
+  const price = priceForModel(session?.detectedModel);
+  if (!price) return { total: 0, price: null, usage: null, estimated: false };
+  const usage = aggregateUsage(session.blocks);
+  if (usage.hasUsage) {
+    const total = (usage.input       * price.input       +
+                   usage.cache_write * (price.cache_write || price.input) +
+                   usage.cache_read  * (price.cache_read  || price.input * 0.1) +
+                   usage.output      * price.output) / 1_000_000;
+    return { total, price, usage, estimated: false };
+  }
+  // Fallback: assume all context was "input" once and 0 output.
+  const total = (totalTokens * price.input) / 1_000_000;
+  return { total, price, usage: null, estimated: true };
+}
+function fmtCost(n) {
+  if (n == null || !isFinite(n)) return "—";
+  if (n < 0.01) return "<$0.01";
+  if (n < 1)    return "$" + n.toFixed(3);
+  if (n < 100)  return "$" + n.toFixed(2);
+  return "$" + Math.round(n).toLocaleString();
+}
+
+// Per-turn cost: one API call's billing. Each assistant block carries a
+// `meta.usage` object from the API response; we multiply through the
+// model's price table (priceForModel) to get a dollar figure for that turn.
+function turnCost(block, sessionModel) {
+  const usage = block && block.meta && block.meta.usage;
+  if (!usage || typeof usage !== "object") return null;
+  const model = (block.meta && block.meta.model) || sessionModel;
+  const price = priceForModel(model);
+  if (!price) return null;
+  const cw_rate = price.cache_write != null ? price.cache_write : price.input * 1.25;
+  const cr_rate = price.cache_read  != null ? price.cache_read  : price.input * 0.1;
+  const input  = usage.input_tokens || 0;
+  const cwrite = usage.cache_creation_input_tokens || 0;
+  const cread  = usage.cache_read_input_tokens || 0;
+  const output = usage.output_tokens || 0;
+  const total = (
+    input  * price.input +
+    cwrite * cw_rate +
+    cread  * cr_rate +
+    output * price.output
+  ) / 1_000_000;
+  return { total, input, cwrite, cread, output, price, model };
+}
+
 const KIND_META = {
   system:      { label: "System",      bg: "--sys-bg", fg: "--sys-fg", bar: "--sys-bar" },
   user:        { label: "User",        bg: "--usr-bg", fg: "--usr-fg", bar: "--usr-bar" },
@@ -371,10 +929,13 @@ const KIND_META = {
   text:        { label: "Text",        bg: "--txt-bg", fg: "--txt-fg", bar: "--txt-bar" },
   image:       { label: "Images",      bg: "--img-bg", fg: "--img-fg", bar: "--img-bar" },
   document:    { label: "Documents",   bg: "--doc-bg", fg: "--doc-fg", bar: "--doc-bar" },
+  framework:   { label: "Framework",   bg: "--fw-bg",  fg: "--fw-fg",  bar: "--fw-bar" },
+  compact:     { label: "Compaction",  bg: "--compact-bg", fg: "--compact-fg", bar: "--compact-bar" },
+  metric:      { label: "Metric",      bg: "--metric-bg",  fg: "--metric-fg",  bar: "--metric-bar" },
   meta:        { label: "Meta",        bg: "--meta-bg",fg: "--meta-fg",bar: "--meta-bar" },
   raw:         { label: "Raw",         bg: "--raw-bg", fg: "--raw-fg", bar: "--raw-bar" },
 };
-const AGGREGATE_ORDER = ["system","user","assistant","tool_use","tool_result","thinking","text","image","document","meta","raw"];
+const AGGREGATE_ORDER = ["system","user","assistant","tool_use","tool_result","thinking","text","image","document","framework","compact","metric","meta","raw"];
 
 const state = {
   sessions: [], current: null, session: null,
@@ -383,7 +944,52 @@ const state = {
   detail: { kindsOff: new Set(), search: "" },
   // Context-limit override: "auto" | preset key | {custom: N}
   limitOverride: "auto",
+  // Sidebar mode: "filter" (title-only filter) or "global" (content search)
+  searchMode: "filter",
+  searchRegex: false, searchCase: false,
+  searchResults: null, searchLoading: false, searchError: null,
 };
+
+// ---------- URL hash sync ----------
+// Hash format: #session=<urlenc>&tab=simple|detailed&path=i,j,k
+let _suppressHashWrite = false;
+function parseHash() {
+  const h = (window.location.hash || "").replace(/^#/, "");
+  if (!h) return {};
+  const out = {};
+  for (const part of h.split("&")) {
+    if (!part) continue;
+    const [k, ...rest] = part.split("=");
+    out[k] = decodeURIComponent(rest.join("=") || "");
+  }
+  return out;
+}
+function writeHash() {
+  if (_suppressHashWrite) return;
+  const bits = [];
+  if (state.current) bits.push(`session=${encodeURIComponent(state.current)}`);
+  if (state.tab && state.tab !== "simple") bits.push(`tab=${state.tab}`);
+  const next = bits.length ? "#" + bits.join("&") : "";
+  if (next !== window.location.hash) {
+    history.replaceState(null, "", next || window.location.pathname + window.location.search);
+  }
+}
+function applyHash() {
+  const { session, tab, path } = parseHash();
+  if (tab === "simple" || tab === "detailed") state.tab = tab;
+  if (session && session !== state.current && state.sessions.some(s => s.id === session)) {
+    _suppressHashWrite = true;
+    openSession(session).then(() => {
+      _suppressHashWrite = false;
+      if (path) {
+        const parts = path.split(",").map(Number).filter(n => !Number.isNaN(n));
+        if (parts.length) jumpToDetail(parts);
+      }
+    });
+    return;
+  }
+  if (state.session) renderTab();
+}
 
 // Resolve the active context limit for the current session.
 function activeLimit(session) {
@@ -410,10 +1016,30 @@ async function loadSessions() {
     renderList();
     // Fire real-title fetch in the background; swap titles in when it returns.
     loadTitles();
+    // If the URL already points at a session, open it now that the list is loaded.
+    applyHash();
+    // Start listening for live updates from the server.
+    startLiveUpdates();
   } catch (e) {
     document.getElementById("sess-list").innerHTML =
       `<div class="empty" style="padding:40px 20px;font-size:12.5px">Couldn't reach the server: ${escapeHTML(String(e))}</div>`;
   }
+}
+
+// Quiet refresh of just the session list — keeps current selection / view intact.
+async function refreshSessions() {
+  try {
+    const res = await fetch("/api/sessions");
+    if (!res.ok) return;
+    const data = await res.json();
+    // Preserve any peeked titles we already have.
+    const oldTitles = new Map(state.sessions.map(s => [s.id, s.title]));
+    state.sessions = data.sessions.map(s => {
+      const prior = oldTitles.get(s.id);
+      return prior && prior !== s.title ? { ...s, title: prior } : s;
+    });
+    if (state.searchMode === "filter") renderList();
+  } catch { /* ignore */ }
 }
 
 async function loadTitles() {
@@ -440,13 +1066,8 @@ function isAudit(s) { return /\/audit\.jsonl$/.test(s.path); }
 
 function renderList() {
   const list = document.getElementById("sess-list");
-  const q = state.query.toLowerCase();
-  const filtered = state.sessions.filter(s => {
-    if (state.filter !== "all" && s.client !== state.filter) return false;
-    if (state.hideAudit && isAudit(s)) return false;
-    if (q && !(s.title.toLowerCase().includes(q) || s.path.toLowerCase().includes(q))) return false;
-    return true;
-  });
+  if (state.searchMode === "global") return renderSearchResults();
+  const filtered = filteredSessions();
   document.getElementById("session-count").textContent =
     `${filtered.length} of ${state.sessions.length}`;
   if (filtered.length === 0) {
@@ -461,10 +1082,14 @@ function renderList() {
     const sizeLabel = s.tokens != null ? `${fmt(s.tokens)} tok`
                     : s.size   != null ? humanSize(s.size)
                     : "";
+    const subCount = Array.isArray(s.subagents) ? s.subagents.length : 0;
+    const subBadge = subCount
+      ? ` <span class="badge sub" title="${subCount} sub-agent${subCount === 1 ? "" : "s"}">⤷ ${subCount}</span>`
+      : "";
     return `<div class="sess ${active}" data-id="${escapeAttr(s.id)}">
       <div class="title">${escapeHTML(s.title || "(untitled)")}</div>
       <div class="row2">
-        <span><span class="badge ${badge}">${badgeLabel}</span> ${sizeLabel}</span>
+        <span><span class="badge ${badge}">${badgeLabel}</span>${subBadge} ${sizeLabel}</span>
         <span>${when}</span>
       </div>
     </div>`;
@@ -492,6 +1117,7 @@ async function openSession(id) {
     </div>`;
   document.getElementById("title").textContent = (meta && meta.title) || "Loading\u2026";
   document.getElementById("path").textContent = sizeLabel ? `(${sizeLabel})` : "";
+  document.getElementById("ctx-chips").innerHTML = "";
   const res = await fetch("/api/session?id=" + encodeURIComponent(id));
   const s = await res.json();
   if (s.error) {
@@ -499,10 +1125,50 @@ async function openSession(id) {
     return;
   }
   state.session = s;
+  // Pre-compute tool_use ↔ tool_result id → paths map for jump affordances.
+  s._toolLinks = buildToolLinks(s);
   document.getElementById("title").textContent = s.title || "(untitled)";
   document.getElementById("path").textContent = s.path;
+  const chipsEl = document.getElementById("ctx-chips");
+  chipsEl.innerHTML = renderCtxChips(s.context || {});
+  // Click-to-open on sub-agent chips
+  for (const el of chipsEl.querySelectorAll(".ctx-chip.sub-agent")) {
+    el.addEventListener("click", () => openSession(el.dataset.id));
+  }
   document.getElementById("tabs").style.display = "flex";
+  document.getElementById("header-actions").style.display = "flex";
   renderTab();
+  writeHash();
+}
+
+function renderCtxChips(ctx) {
+  const chips = [];
+  if (ctx.entrypoint) {
+    chips.push(`<span class="ctx-chip entry" title="Entry point">${escapeHTML(ctx.entrypoint)}</span>`);
+  }
+  if (ctx.version) {
+    chips.push(`<span class="ctx-chip"><span class="k">ver</span>${escapeHTML(ctx.version)}</span>`);
+  }
+  if (ctx.gitBranch) {
+    chips.push(`<span class="ctx-chip" title="Git branch at start of session"><span class="k">git</span>${escapeHTML(ctx.gitBranch)}</span>`);
+  }
+  if (ctx.cwd) {
+    chips.push(`<span class="ctx-chip" title="Working directory"><span class="k">cwd</span>${escapeHTML(ctx.cwd)}</span>`);
+  }
+  if (ctx.slug) {
+    chips.push(`<span class="ctx-chip" title="Session slug"><span class="k">slug</span>${escapeHTML(ctx.slug)}</span>`);
+  }
+  // Sub-agent chips (metadata-only; we don't parse the agent files until click).
+  const sess = state.sessions.find(x => x.id === state.current);
+  const subs = sess && Array.isArray(sess.subagents) ? sess.subagents : [];
+  for (const s of subs) {
+    const label = `⤷ agent ${escapeHTML(s.agentId.slice(0, 12))}`;
+    const size = humanSize(s.size);
+    chips.push(`<span class="ctx-chip sub-agent" data-id="${escapeAttr(s.id)}"
+      title="Sub-agent ${escapeAttr(s.agentId)} (${size}) — click to open">${label}
+      <span class="k" style="margin-left:4px">${size}</span></span>`);
+  }
+  return chips.join("");
 }
 
 function renderTab() {
@@ -529,26 +1195,64 @@ function walk(blocks) {
   return out;
 }
 
+// Build a bidirectional map tool_use_id → [useBlockPath, resultBlockPath].
+// tool_use blocks are nested inside assistant messages; tool_results are
+// nested inside user messages. We walk once per session and index by id so
+// the Detailed view can render click-to-jump affordances.
+function buildToolLinks(session) {
+  const byId = {};  // id -> { usePath, resultPath }
+  const visit = (b, path) => {
+    if (b.kind === "tool_use" && b.meta && b.meta.id) {
+      const slot = (byId[b.meta.id] ||= {});
+      slot.usePath = path;
+    } else if (b.kind === "tool_result" && b.meta && b.meta.tool_use_id) {
+      const slot = (byId[b.meta.tool_use_id] ||= {});
+      slot.resultPath = path;
+    }
+    if (b.children) {
+      for (let i = 0; i < b.children.length; i++) visit(b.children[i], [...path, i]);
+    }
+  };
+  for (let i = 0; i < session.blocks.length; i++) visit(session.blocks[i], [i]);
+  return byId;
+}
+
 function aggregate(session) {
   // Only count a block's OWN text in its kind (children contribute on their own rows),
-  // so totals from nested nodes don't double-count.
+  // so totals from nested nodes don't double-count. Uses server-computed
+  // `ownTokens` (real tiktoken) so KPIs / chart / heaviest all agree.
+  //
+  // Also annotates each block with `_cum` = inclusive cumulative tokens at
+  // this point in pre-order traversal (= chronological for Claude Code), so
+  // the Detailed view can show cumulative-fill bars instead of per-row
+  // shares. Cheap — same walk we already do.
   const byKind = {};
   const flat = walk(session.blocks);
+  let cum = 0;
   for (const { block } of flat) {
     const k = block.kind in KIND_META ? block.kind : "raw";
-    const toks = estTok(block.text);
+    const toks = tok(block);
     if (!byKind[k]) byKind[k] = 0;
     byKind[k] += toks;
+    cum += toks;
+    block._cum = cum;
   }
   const total = Object.values(byKind).reduce((a,b) => a+b, 0);
   // heaviest individual (leaf-ish) blocks
   const heavy = flat
-    .map(({ block, path }) => ({ block, path, tokens: estTok(block.text) }))
+    .map(({ block, path }) => ({ block, path, tokens: tok(block) }))
     .filter(x => x.tokens > 0)
     .sort((a,b) => b.tokens - a.tokens);
   return { byKind, total, heavy, flat };
 }
 
+// Real tiktoken count for a block's own text (set by server). Falls back to
+// a chars/4 estimate only for defensive purposes — server always sets it.
+function tok(block) {
+  if (!block) return 0;
+  if (typeof block.ownTokens === "number") return block.ownTokens;
+  return estTok(block.text);
+}
 function estTok(text) { if (!text) return 0; return Math.max(1, Math.ceil(text.length / 4)); }
 
 // ---------- Simple view ----------
@@ -568,6 +1272,29 @@ function renderSimple(s) {
     .map(k => ({ kind: k, tokens: agg.byKind[k], meta: KIND_META[k] }));
 
   const limitBadge = renderLimitBadge(s, limitInfo);
+
+  const cost = sessionCost(s, total);
+  // `cost.usage` fields are SUMS of per-turn API billing across every
+  // assistant response, not the tokens currently in the context. A long
+  // session with prompt caching can accumulate hundreds of millions of
+  // cache_read tokens because every turn re-bills the cached prologue at
+  // 0.1× the input rate. That's the real billed figure — the tooltip just
+  // has to make clear it's cumulative billing, not session size.
+  const costTitle = cost.price
+    ? cost.usage
+      ? `Cumulative API billing across all assistant turns (NOT current context size):\n` +
+        `• Input (fresh):   ${fmt(cost.usage.input)} tok\n` +
+        `• Cache write:     ${fmt(cost.usage.cache_write)} tok  (first-time, 1.25× input rate)\n` +
+        `• Cache read:      ${fmt(cost.usage.cache_read)} tok  (re-billed every turn at 0.1× input rate)\n` +
+        `• Output:          ${fmt(cost.usage.output)} tok\n` +
+        `Cache read dwarfs the rest on long sessions: each turn re-reads the entire prior context from cache.`
+      : `Estimated from ${fmt(total)} context tokens × $${cost.price.input}/Mtok (no usage metadata)`
+    : "No price table for this model";
+  const costLabel = !cost.price
+    ? "Unknown model"
+    : cost.usage
+      ? `${fmt(cost.usage.output)} out · ${fmt(cost.usage.cache_read)} cache-read (billed, all turns)`
+      : "Estimated";
 
   const truncBlock = s.blocks.find(b => b.kind === "meta" && /truncated after/.test(b.label || ""));
   const truncBanner = truncBlock
@@ -593,6 +1320,10 @@ function renderSimple(s) {
         <div class="card kpi">
           <div class="value" title="${escapeAttr(topKind?.[0] || "")}">${topKind ? KIND_META[topKind[0]].label : "\u2014"}</div>
           <div class="label">Top consumer \u00b7 ${topKind ? pctStr(topKind[1], total) : ""}</div>
+        </div>
+        <div class="card kpi" title="${escapeAttr(costTitle)}">
+          <div class="value">${fmtCost(cost.total)}${cost.estimated ? '<span style="font-size:14px;color:var(--fg-faint);font-weight:400"> ~</span>' : ""}</div>
+          <div class="label">Est. cost \u00b7 ${escapeHTML(costLabel)}</div>
         </div>
       </div>
 
@@ -643,6 +1374,12 @@ function renderSimple(s) {
         ${renderGrowth(s)}
       </div>
 
+      ${(() => { const lat = renderLatency(s); return lat ? `<div class="section">${lat}</div>` : ""; })()}
+
+      <div class="section">
+        ${renderOverhead(s, agg)}
+      </div>
+
       <div class="section">
         <h3>Suggestions</h3>
         <div class="suggestions">${renderSuggestions(s, agg).join("")}</div>
@@ -650,6 +1387,7 @@ function renderSimple(s) {
     </div>
   `;
   document.getElementById("content").innerHTML = html;
+  wireGrowthChart();
   // Wire up jump-to-detail from offenders list
   for (const row of document.querySelectorAll("#offenders .row")) {
     row.addEventListener("click", () => {
@@ -670,6 +1408,81 @@ function renderSimple(s) {
       state.limitOverride = v;
     }
     renderSimple(s);
+  });
+}
+
+function wireGrowthChart() {
+  const g = window.__growthState;
+  const wrap = document.getElementById("chart-wrap");
+  const tooltip = document.getElementById("turn-tooltip");
+  const hover = document.getElementById("turn-hover");
+  if (!g || !wrap || !tooltip || !hover) return;
+  const { turns, compactions, cumulative, W, H, PAD, innerW, CTX } = g;
+
+  const fmtMsInline = (ms) => (ms < 1000 ? `${Math.round(ms)}ms` : `${(ms/1000).toFixed(1)}s`);
+  const pctCtx = (n) => CTX ? `${(100 * n / CTX).toFixed(1)}% of ${humanLimit(CTX)}` : `${fmt(n)} tok`;
+
+  function buildTooltipHTML(turn, turnIdx) {
+    const kinds = AGGREGATE_ORDER.filter(k => turn.kinds[k]);
+    const rows = kinds.map(k => {
+      const v = turn.kinds[k];
+      const pct = turn.total ? (100 * v / turn.total).toFixed(0) : "0";
+      return `<div class="kv"><span class="k"><span class="sw" style="background:var(${KIND_META[k].bar})"></span>${escapeHTML(KIND_META[k].label)}</span>` +
+             `<span class="v">${fmt(v)} tok · ${pct}%</span></div>`;
+    }).join("");
+    const cumHere = cumulative[turnIdx] || 0;
+    const compact = compactions.find(c => c.afterTurnIndex + 1 === turnIdx);
+    const compactNote = compact
+      ? `<div class="note">Compact fired here: ${fmt(compact.preTokens)} → ${fmt(compact.postTokens)} tok · ${escapeHTML(compact.trigger)} · ${fmtMsInline(compact.durationMs)}</div>`
+      : "";
+    const durLine = turn.metric
+      ? `<div class="kv"><span class="k">Turn duration</span><span class="v">${fmtMsInline(turn.metric.durationMs)}${turn.metric.messageCount ? ` · ${turn.metric.messageCount} msgs` : ""}</span></div>`
+      : "";
+    return `<h4>${turn.label === "setup" ? "Setup" : `Turn ${escapeHTML(turn.label)}`}</h4>` +
+           (rows || `<div class="kv" style="color:var(--fg-faint)">(no new tokens this turn)</div>`) +
+           `<div class="total">` +
+             `<div class="kv"><span class="k">This turn</span><span class="v">${fmt(turn.total)} tok</span></div>` +
+             `<div class="kv"><span class="k">Cumulative</span><span class="v">${fmt(cumHere)} tok · ${pctCtx(cumHere)}</span></div>` +
+             durLine +
+           `</div>` +
+           compactNote;
+  }
+
+  const hide = () => { tooltip.classList.remove("on"); hover.classList.remove("on"); };
+  wrap.addEventListener("mouseleave", hide);
+  wrap.addEventListener("mousemove", (e) => {
+    const rect = wrap.getBoundingClientRect();
+    if (!rect.width) return;
+    const xWrap = e.clientX - rect.left;
+    const viewX = (xWrap / rect.width) * W;
+    if (viewX < PAD.left || viewX > W - PAD.right) { hide(); return; }
+    const localBandW = innerW / turns.length;
+    const idx = Math.min(turns.length - 1, Math.max(0, Math.floor((viewX - PAD.left) / localBandW)));
+    const turn = turns[idx];
+    if (!turn) { hide(); return; }
+
+    const xLeftPctV = ((PAD.left + idx * localBandW) / W) * 100;
+    const widthPctV = (localBandW / W) * 100;
+    const topPctV   = (PAD.top / H) * 100;
+    const bottomPctV = (PAD.bottom / H) * 100;
+    hover.style.left   = `${xLeftPctV}%`;
+    hover.style.width  = `${widthPctV}%`;
+    hover.style.top    = `${topPctV}%`;
+    hover.style.bottom = `${bottomPctV}%`;
+    hover.classList.add("on");
+
+    tooltip.innerHTML = buildTooltipHTML(turn, idx);
+    tooltip.classList.add("on");
+    // Center on column; clamp to chart edges so it never clips.
+    const colCenterPx = rect.width * (xLeftPctV + widthPctV / 2) / 100;
+    tooltip.style.top = `${(topPctV * rect.height / 100) + 4}px`;
+    const ttRect = tooltip.getBoundingClientRect();
+    let leftPx = colCenterPx - ttRect.width / 2;
+    if (leftPx < 4) leftPx = 4;
+    const maxLeft = rect.width - ttRect.width - 4;
+    if (leftPx > maxLeft) leftPx = maxLeft;
+    tooltip.style.left = `${leftPx}px`;
+    tooltip.style.transform = "none";
   });
 }
 
@@ -711,20 +1524,41 @@ function renderOffender(h, i, maxTokens) {
 
 // Walk a block subtree and accumulate own-text tokens by kind.
 function collectKinds(b, acc) {
-  const own = estTok(b.text);
+  const own = tok(b);
   if (own) acc[b.kind] = (acc[b.kind] || 0) + own;
   if (b.children) for (const c of b.children) collectKinds(c, acc);
 }
 
 // Does this top-level block count as a "real" user input (vs. a
 // Claude-API user message that's just carrying tool_results back)?
+// Claude Code writes several things into user-message content that aren't
+// really user input: interrupt markers, IDE file-open / selection events,
+// bash-hook stdout. Strip those framework envelopes before deciding whether
+// a message is a "real" user turn. Slash commands (<command-name>) DO count
+// — the user actually invoked them.
+const INTERRUPT_RE = /^\s*\[Request interrupted[^\]]*\]\s*$/;
+const FRAMEWORK_ENVELOPE_TAGS = [
+  "ide_opened_file", "ide_selection",
+  "local-command-stdout", "local-command-stderr",
+  "bash-stdout", "bash-stderr",
+  "user-prompt-submit-hook",
+];
+const FRAMEWORK_STRIP_RE = new RegExp(
+  "<(" + FRAMEWORK_ENVELOPE_TAGS.join("|") + ")(?:\\s[^>]*)?>[\\s\\S]*?</\\1>",
+  "g"
+);
+function hasRealUserText(text) {
+  if (!text) return false;
+  if (INTERRUPT_RE.test(text)) return false;
+  const stripped = text.replace(FRAMEWORK_STRIP_RE, "").trim();
+  return stripped.length > 0;
+}
+
 function isUserInput(b) {
   if (b.kind !== "user") return false;
-  // own text counts
-  if (b.text && b.text.trim()) return true;
-  // a text child counts
+  if (hasRealUserText(b.text)) return true;
   for (const c of (b.children || [])) {
-    if (c.kind === "text" && c.text && c.text.trim()) return true;
+    if (c.kind === "text" && hasRealUserText(c.text)) return true;
   }
   return false;
 }
@@ -733,6 +1567,10 @@ function isUserInput(b) {
 // real user input; everything before the first one is "setup" (turn 0).
 function buildTurns(blocks) {
   const turns = [];
+  // Track compaction events as they appear in block order, tagged with the
+  // turn index they fall after. The growth chart renders vertical markers at
+  // those positions.
+  const compactions = [];
   let cur = { label: "setup", kinds: {}, total: 0, hasContent: false };
   turns.push(cur);
   for (const b of blocks) {
@@ -740,23 +1578,39 @@ function buildTurns(blocks) {
       cur = { label: "", kinds: {}, total: 0, hasContent: false };
       turns.push(cur);
     }
+    if (b.kind === "compact") {
+      const m = b.meta || {};
+      compactions.push({
+        afterTurnIndex: turns.length - 1,
+        preTokens:  m.preTokens  || 0,
+        postTokens: m.postTokens || 0,
+        durationMs: m.durationMs || 0,
+        trigger:    m.trigger    || "auto",
+        tokensSaved: m.tokensSaved || Math.max(0, (m.preTokens || 0) - (m.postTokens || 0)),
+      });
+    }
+    if (b.kind === "metric" && b.meta && b.meta.durationMs != null) {
+      // Attach turn_duration metrics to the turn they closed out.
+      cur.metric = { durationMs: b.meta.durationMs, messageCount: b.meta.messageCount };
+    }
     collectKinds(b, cur.kinds);
     cur.hasContent = true;
   }
-  // Drop a leading empty setup turn (system prompt was already inside it,
-  // so this is rarely hit — but keep the logic safe).
-  if (turns.length && Object.keys(turns[0].kinds).length === 0) turns.shift();
-  // Label turns: setup (if kept), then T1, T2, ...
+  // Drop a leading empty setup turn; shift marker indices to match.
+  if (turns.length && Object.keys(turns[0].kinds).length === 0) {
+    turns.shift();
+    for (const c of compactions) c.afterTurnIndex = Math.max(-1, c.afterTurnIndex - 1);
+  }
   let n = 0;
   for (const t of turns) {
     if (t.label !== "setup") { n += 1; t.label = String(n); }
     t.total = Object.values(t.kinds).reduce((a, b) => a + b, 0);
   }
-  return turns;
+  return { turns, compactions };
 }
 
 function renderGrowth(s) {
-  const turns = buildTurns(s.blocks);
+  const { turns, compactions } = buildTurns(s.blocks);
   if (turns.length < 1 || turns.every(t => t.total === 0)) {
     return `<div class="growth"><div style="color:var(--fg-faint);font-size:12px">Not enough turns to plot growth yet.</div></div>`;
   }
@@ -793,7 +1647,9 @@ function renderGrowth(s) {
     let yTop = yBar(t.total);
     return kinds.map(k => {
       const v = t.kinds[k];
-      const h = (v / maxPerTurn) * innerH;
+      // Floor any segment with real tokens at 1px so a 200-tok turn next
+      // to a 60K-tok peak doesn't render invisibly.
+      const h = Math.max(v > 0 ? 1 : 0, (v / maxPerTurn) * innerH);
       const rect = `<rect class="bar-seg" x="${x.toFixed(1)}" y="${yTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="var(${KIND_META[k].bar})"><title>Turn ${t.label} \u2022 ${KIND_META[k].label}: ${fmt(v)} tok</title></rect>`;
       yTop += h;
       return rect;
@@ -842,8 +1698,39 @@ function renderGrowth(s) {
     `<span><span class="swatch" style="background:var(${KIND_META[k].bar})"></span>${KIND_META[k].label}</span>`
   ).join("");
 
+  // Compaction markers: vertical dashed lines + floating labels on top of
+  // the chart. `afterTurnIndex + 1` so the line sits at the left edge of the
+  // NEXT turn\u2019s bar \u2014 where the compaction \u201cflushed\u201d the
+  // prior tokens.
+  const compactLines = compactions.map(c => {
+    const i = Math.min(turns.length - 1, Math.max(0, c.afterTurnIndex + 1));
+    const x = PAD.left + i * bandW;
+    const pct = c.preTokens ? (100 * c.tokensSaved / c.preTokens) : 0;
+    const tip = `Compact at turn ${turns[Math.min(i, turns.length - 1)]?.label || "?"} \u00b7 ${fmt(c.preTokens)} \u2192 ${fmt(c.postTokens)} tok (-${pct.toFixed(0)}%) in ${(c.durationMs/1000).toFixed(1)}s \u00b7 ${c.trigger}`;
+    return `<line class="compact-line" x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${PAD.top}" y2="${H - PAD.bottom}"><title>${escapeAttr(tip)}</title></line>`;
+  }).join("");
+  const compactLabels = compactions.map(c => {
+    const i = Math.min(turns.length - 1, Math.max(0, c.afterTurnIndex + 1));
+    const x = PAD.left + i * bandW;
+    return `<div class="compact-label" style="left:${pctX(x)}; top:2px">compact -${fmt(c.tokensSaved)}</div>`;
+  }).join("");
+
+  const compactTotal = compactions.reduce((a, c) => a + c.tokensSaved, 0);
+  const compactSummary = compactions.length
+    ? `<span><b>${compactions.length}</b> compaction${compactions.length === 1 ? "" : "s"} \u00b7 <b>${fmt(compactTotal)}</b> tok saved</span>`
+    : "";
+
+  // Stash layout so the post-render hook can wire up a rich mousemove tooltip.
+  // Using window (rather than data-attr) keeps turn objects intact without
+  // JSON round-tripping, and we only ever have one chart on screen.
+  window.__growthState = {
+    turns, compactions, cumulative,
+    W, H, PAD, innerW, innerH, bandW,
+    CTX: activeLimit(s).limit,
+  };
+
   return `<div class="growth">
-    <div class="chart-wrap">
+    <div class="chart-wrap" id="chart-wrap">
       <div class="axis-label" style="top:-4px; left:${axisLabelLeft}">Tokens this turn</div>
       <div class="axis-label right" style="top:-4px; left:${axisLabelRight}; transform:translateX(-100%)">Cumulative \u2192</div>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
@@ -851,25 +1738,262 @@ function renderGrowth(s) {
         ${bars}
         <path class="cum-line" d="${linePath}"/>
         ${dots}
+        ${compactLines}
         <line class="axis-bottom" x1="${PAD.left}" x2="${W - PAD.right}" y1="${H - PAD.bottom}" y2="${H - PAD.bottom}"/>
       </svg>
       ${yTicks.join("")}
       ${xTicks}
+      ${compactLabels}
       <div class="axis-label bottom">Turn</div>
+      <div class="turn-hover" id="turn-hover"></div>
+      <div class="turn-tooltip" id="turn-tooltip"></div>
     </div>
     <div class="legend">${legend}</div>
     <div class="summary">
       <span><b>${turns.filter(t => t.label !== "setup").length}</b> real turn${turns.length === 1 ? "" : "s"}${turns.some(t => t.label === "setup") ? " + setup" : ""}</span>
       <span>Peak per turn: <b>${fmt(maxPerTurn)}</b> tok</span>
       <span>Final cumulative: <b>${fmt(cumulative[cumulative.length - 1])}</b> tok</span>
+      ${compactSummary}
     </div>
   </div>`;
 }
 
 function subtreeTokens(b) {
-  let t = estTok(b.text);
+  let t = tok(b);
   if (b.children) for (const c of b.children) t += subtreeTokens(c);
   return t;
+}
+
+// ---------- framework / system overhead analyzer ----------
+// Walks the session and breaks out every chunk of context that isn't actual
+// conversation — explicit system prompt, Claude Code framework injections
+// (skill manifest, MCP instructions, tool list, isMeta user stubs), visible
+// <system-reminder> envelopes, and the inferred hidden system prompt that
+// only shows up as cache_creation_input_tokens on turn 1.
+const ENVELOPE_TAGS = [
+  "system-reminder", "command-name", "command-message", "command-args",
+  "user-prompt-submit-hook", "ide_selection", "ide_opened_file",
+  "bash-stdout", "bash-stderr", "local-command-stdout", "local-command-stderr",
+];
+const ENVELOPE_RE = new RegExp(
+  "<(" + ENVELOPE_TAGS.join("|") + ")(?:\\s[^>]*)?>([\\s\\S]*?)</\\1>",
+  "g"
+);
+function countEnvelopeTokens(text) {
+  if (!text) return 0;
+  let total = 0;
+  let m;
+  ENVELOPE_RE.lastIndex = 0;
+  while ((m = ENVELOPE_RE.exec(text)) !== null) {
+    // ~chars/4 is fine here — envelope content is small and we're labelling
+    // it as "visible overhead", not adding to the main token math.
+    total += Math.ceil(m[0].length / 4);
+  }
+  return total;
+}
+
+function overheadAnalysis(session) {
+  const rows = [];     // [{key, label, tokens, hint}]
+  let systemTotal = 0;
+  const frameworkBySub = {};       // subtype -> tokens (subtree)
+  let isMetaUserTotal = 0;
+  let envelopeTotal = 0;
+  let realUserTotal = 0;           // for warning math (conversation share)
+  let conversationTotal = 0;       // user + assistant subtree tokens
+
+  function scanUserText(text) {
+    // Any <system-reminder> / <command-name> / etc. inside normal user
+    // messages counts as envelope overhead; the rest is real user content.
+    const env = countEnvelopeTokens(text);
+    envelopeTotal += env;
+    // Best-effort: subtract envelope contribution from the "user" bucket.
+    // (Not exact because tok() uses tiktoken; envelope uses chars/4. Close
+    //  enough for a bar chart.)
+  }
+
+  for (const b of session.blocks) {
+    if (b.kind === "system") {
+      systemTotal += subtreeTokens(b);
+    } else if (b.kind === "framework") {
+      const sub = (b.meta && b.meta.subtype) || "isMeta";
+      frameworkBySub[sub] = (frameworkBySub[sub] || 0) + subtreeTokens(b);
+      if (sub === "isMeta") isMetaUserTotal += subtreeTokens(b);
+    } else if (b.kind === "user") {
+      realUserTotal += subtreeTokens(b);
+      conversationTotal += subtreeTokens(b);
+      // Scan nested text children for envelope tags
+      const walkText = (x) => {
+        if (x.kind === "text" && x.text) scanUserText(x.text);
+        if (x.children) for (const c of x.children) walkText(c);
+      };
+      walkText(b);
+    } else if (b.kind === "assistant") {
+      conversationTotal += subtreeTokens(b);
+    }
+  }
+
+  // Hidden system prompt: inferred from the first assistant turn's
+  // cache_creation_input_tokens when the user input that triggered it was
+  // tiny (a few tokens). That cache-write on turn 1 is where Claude Code
+  // stashes the entire prologue — system + tool schemas + CLAUDE.md —
+  // before the conversation really starts.
+  let hiddenPrologue = 0;
+  let hiddenInferredFrom = null;
+  for (const b of session.blocks) {
+    if (b.kind !== "assistant") continue;
+    const u = b.meta && b.meta.usage;
+    if (!u) break;
+    const cacheWrite = (u.cache_creation_input_tokens || 0);
+    const nonCachedInput = (u.input_tokens || 0);
+    // Only trust the first assistant turn where real input was small — that
+    // strongly indicates the cache-write is prologue, not user content.
+    if (cacheWrite > 1000 && nonCachedInput < 500) {
+      hiddenPrologue = cacheWrite;
+      hiddenInferredFrom = "first assistant turn";
+    }
+    break;
+  }
+
+  // Build rows, ordered high → low impact
+  if (systemTotal) rows.push({
+    key: "system", label: "Explicit system prompt", tokens: systemTotal,
+    hint: "kind:\"system\" blocks (rarely set by Claude Code itself)",
+  });
+  const FW_LABELS = {
+    skill_listing:         "Skill manifest",
+    deferred_tools_delta:  "Tool catalog",
+    mcp_instructions_delta:"MCP server instructions",
+    isMeta:                "Framework-injected user messages",
+    plan_mode:             "Plan-mode prompt",
+    command_permissions:   "Command permissions",
+  };
+  for (const [sub, tokens] of Object.entries(frameworkBySub).sort((a,b) => b[1] - a[1])) {
+    rows.push({
+      key: "fw-" + sub, tokens,
+      label: FW_LABELS[sub] || `Framework: ${sub}`,
+      hint: sub === "isMeta"
+        ? "slash-command bodies / skill doc loads / resume stubs — the harness stuffs these into the conversation as fake user turns"
+        : "injected into the model's context every turn",
+    });
+  }
+  if (envelopeTotal) rows.push({
+    key: "envelopes", label: "Harness envelopes in user messages",
+    tokens: envelopeTotal,
+    hint: "<system-reminder>, <command-name>, <ide_selection>, <bash-stdout>, etc. — framework tags stripped off the top of user content",
+  });
+  if (hiddenPrologue) rows.push({
+    key: "hidden", label: "Hidden Claude Code prologue (inferred)",
+    tokens: hiddenPrologue,
+    hint: `Inferred from cache_creation_input_tokens on the first assistant turn (where input_tokens is near-zero). Includes the real system prompt, tool schemas, and any prior CLAUDE.md contents that weren't explicit framework blocks. Not in the JSONL — this is a lower bound on invisible overhead.`,
+    inferred: true,
+  });
+
+  const visibleOverhead = systemTotal
+    + Object.values(frameworkBySub).reduce((a,b) => a+b, 0)
+    + envelopeTotal;
+  const totalOverhead = visibleOverhead + hiddenPrologue;
+  return {
+    rows,
+    visibleOverhead,
+    hiddenPrologue,
+    totalOverhead,
+    conversationTotal,
+    hiddenInferredFrom,
+  };
+}
+
+function renderLatency(s) {
+  // Collect turn_duration metric blocks (from system/turn_duration events)
+  const turns = [];
+  const visit = (b) => {
+    if (b.kind === "metric" && b.meta && b.meta.durationMs != null) {
+      turns.push({ ms: +b.meta.durationMs, msgs: b.meta.messageCount });
+    }
+    if (b.children) for (const c of b.children) visit(c);
+  };
+  for (const b of s.blocks) visit(b);
+  if (!turns.length) return "";
+
+  const ms = turns.map(t => t.ms);
+  const sorted = [...ms].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const p95 = sorted[Math.max(0, Math.floor(sorted.length * 0.95) - 1)];
+  const max = sorted[sorted.length - 1];
+  const slow = turns.filter(t => t.ms > 30000).length;
+
+  const fmtMs = (n) => n < 1000 ? `${Math.round(n)}ms` : `${(n/1000).toFixed(1)}s`;
+  const barScale = Math.max(...ms, 1);
+  const bars = turns.map((t, i) => {
+    const h = Math.max(2, (t.ms / barScale) * 116);
+    const cls = t.ms > 30000 ? "bar slow" : "bar";
+    const tip = `Turn ${i+1}: ${fmtMs(t.ms)}${t.msgs ? ` · ${t.msgs} msgs` : ""}`;
+    return `<div class="${cls}" style="height:${h.toFixed(1)}px" title="${escapeAttr(tip)}"></div>`;
+  }).join("");
+  const axisLabels = turns.length > 20
+    ? turns.map((_, i) => `<span>${(i+1) % 5 === 0 || i === 0 || i === turns.length - 1 ? i+1 : ""}</span>`).join("")
+    : turns.map((_, i) => `<span>${i+1}</span>`).join("");
+
+  const slowNote = slow
+    ? ` · <b style="color:var(--compact-fg)">${slow} slow (&gt;30s)</b>`
+    : "";
+
+  return `
+    <div class="latency">
+      <div class="head">
+        <h3 style="margin:0">Turn latency</h3>
+        <div class="stats">
+          <span>median <b>${fmtMs(median)}</b></span>
+          <span>p95 <b>${fmtMs(p95)}</b></span>
+          <span>max <b>${fmtMs(max)}</b></span>
+          <span>turns <b>${turns.length}</b>${slowNote}</span>
+        </div>
+      </div>
+      <div class="bars">${bars}</div>
+      <div class="x-axis">${axisLabels}</div>
+      <div class="note">From Claude Code's <code>turn_duration</code> system events. Orange bars = turns over 30s.</div>
+    </div>`;
+}
+
+function renderOverhead(s, agg) {
+  const o = overheadAnalysis(s);
+  if (!o.rows.length) return "";
+  const CTX = activeLimit(s).limit;
+  // Denominator: total we know about + the hidden prologue. Use that so the
+  // bars within the panel are comparable to each other, and show the share
+  // of the context limit separately as the headline.
+  const bars_denom = Math.max(1, ...o.rows.map(r => r.tokens));
+  const pctOfCtx = (o.totalOverhead / CTX) * 100;
+  const pctOfSession = o.conversationTotal + o.visibleOverhead > 0
+    ? (o.visibleOverhead / (o.conversationTotal + o.visibleOverhead)) * 100
+    : 0;
+  const sevCtx   = pctOfCtx >= 45 ? "alert" : pctOfCtx >= 25 ? "warn" : "";
+  const rowsHtml = o.rows.map(r => {
+    const pct = (r.tokens / bars_denom) * 100;
+    const cls = r.inferred ? "inferred" : "";
+    return `<tr class="${cls}">
+      <td class="label">${escapeHTML(r.label)}
+        ${r.hint ? `<div class="hint">${escapeHTML(r.hint)}</div>` : ""}</td>
+      <td class="bar"><div class="b"><div style="width:${pct.toFixed(2)}%"></div></div></td>
+      <td class="tok">${fmt(r.tokens)} tok</td>
+      <td class="pct">${((r.tokens / CTX) * 100).toFixed(1)}%</td>
+    </tr>`;
+  }).join("");
+  const hiddenNote = o.hiddenPrologue
+    ? "The hidden prologue is inferred from <code>cache_creation_input_tokens</code> on the first assistant turn — the JSONL doesn't log the Claude Code system prompt directly."
+    : "";
+  return `
+    <div class="overhead">
+      <div class="ov-head">
+        <h3 style="margin:0">Context overhead</h3>
+        <div class="ov-summary ${sevCtx}">
+          <span class="val"><b>${fmt(o.totalOverhead)}</b> tok</span>
+          · <b>${pctOfCtx.toFixed(1)}%</b> of ${humanLimit(CTX)} context
+          · <span style="color:var(--fg-dim)">${pctOfSession.toFixed(0)}% of visible content</span>
+        </div>
+      </div>
+      <table>${rowsHtml}</table>
+      ${hiddenNote ? `<div class="note">${hiddenNote}</div>` : ""}
+    </div>`;
 }
 
 function renderSuggestions(s, agg) {
@@ -912,12 +2036,23 @@ function renderSuggestions(s, agg) {
 // ---------- Detailed view ----------
 function renderDetailed(s) {
   const agg = aggregate(s);
+  const limitInfo = activeLimit(s);
+  const CTX = limitInfo.limit;
   const kindsPresent = AGGREGATE_ORDER.filter(k => agg.byKind[k]);
   const filtersHTML = kindsPresent.map(k => {
     const m = KIND_META[k];
     const off = state.detail.kindsOff.has(k) ? "off" : "";
     return `<span class="k ${off}" data-kind="${k}" style="background:var(${m.bg});color:var(${m.fg})">${k} \u00b7 ${fmt(agg.byKind[k])}</span>`;
   }).join("");
+
+  // Same limit picker the Simple view offers, so the user can change context
+  // window from here and the per-row bars recalculate immediately.
+  const limitOptions = [
+    ...LIMIT_PRESETS.map(p =>
+      `<option value="${p.key}" ${state.limitOverride === p.key ? "selected" : ""}>${p.label}${p.key === "auto" && limitInfo.source !== "manual" ? ` (${humanLimit(limitInfo.limit)})` : ""}</option>`
+    ),
+    `<option value="custom" ${state.limitOverride && state.limitOverride.custom ? "selected" : ""}>Custom\u2026</option>`,
+  ].join("");
 
   document.getElementById("content").innerHTML = `
     <div class="detailed">
@@ -926,15 +2061,19 @@ function renderDetailed(s) {
         <button id="expand-all">Expand all</button>
         <button id="collapse-all">Collapse all</button>
         <div class="kind-filters">${filtersHTML}</div>
+        <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-dim)">
+          <span>context:</span>
+          <select id="detail-limit-select" class="limit-select">${limitOptions}</select>
+        </span>
       </div>
       <div class="tree" id="tree"></div>
     </div>
   `;
-  renderTree(s.blocks, agg.total);
+  renderTree(s.blocks, CTX);
 
   document.getElementById("tree-search").addEventListener("input", e => {
     state.detail.search = e.target.value;
-    renderTree(s.blocks, agg.total);
+    renderTree(s.blocks, CTX);
   });
   document.getElementById("expand-all").onclick = () => setAll(true);
   document.getElementById("collapse-all").onclick = () => setAll(false);
@@ -946,6 +2085,18 @@ function renderDetailed(s) {
       renderDetailed(s);
     });
   }
+  document.getElementById("detail-limit-select").addEventListener("change", (e) => {
+    const v = e.target.value;
+    if (v === "custom") {
+      const raw = prompt("Context limit in tokens (e.g. 150000):", String(CTX));
+      const n = raw && parseInt(raw.replace(/[^0-9]/g, ""), 10);
+      if (n && n > 0) state.limitOverride = { custom: n };
+      else { return; }
+    } else {
+      state.limitOverride = v;
+    }
+    renderDetailed(s);
+  });
 }
 
 function renderTree(blocks, total) {
@@ -975,6 +2126,7 @@ function renderNode(b, depth, path, total, search) {
   if (kindFiltered(b)) return null;
   const wrap = document.createElement("div");
   wrap.className = "node";
+  if (b.meta && b.meta.compactRef) wrap.classList.add("compact-ref");
   wrap.dataset.path = path.join(",");
   const hasChildren = b.children && b.children.length;
   const hasBody = !!(b.text && b.text.length);
@@ -983,7 +2135,19 @@ function renderNode(b, depth, path, total, search) {
   if (open) wrap.classList.add("open");
 
   const m = KIND_META[b.kind] || KIND_META.raw;
-  const pct = total ? (b.tokens / total) * 100 : 0;
+  // Cumulative-fill bar — `total` is the active context-window limit, so the
+  // bar shows how much of the context is consumed by the time we reach this
+  // block. Left dim segment = everything before this block; right solid
+  // segment = this block's own contribution. Remaining empty space = headroom
+  // left in the context window.
+  const own = tok(b);
+  const cum = typeof b._cum === "number" ? b._cum : own;
+  const before = Math.max(0, cum - own);
+  const ownPct    = total ? (own    / total) * 100 : 0;
+  const beforePct = total ? (before / total) * 100 : 0;
+  const cumPct    = total ? (cum    / total) * 100 : 0;
+  const barTitle = `Context fill here: ${fmt(cum)} / ${fmt(total)} tok (${cumPct.toFixed(1)}%)` +
+                   (own ? ` \u00b7 this block adds ${fmt(own)} tok (${ownPct.toFixed(2)}%)` : "");
 
   const row = document.createElement("div");
   row.className = "row";
@@ -991,18 +2155,94 @@ function renderNode(b, depth, path, total, search) {
     <span class="caret ${expandable ? "" : "leaf"}">${expandable ? (open ? "\u25be" : "\u25b8") : "\u2022"}</span>
     <span class="kind ${b.kind}">${(b.kind || "raw").replace("_", " ")}</span>
     <span class="label"></span>
-    <span class="mini-bar" title="${pct.toFixed(2)}% of session"><div style="width:${Math.min(100, pct).toFixed(2)}%;background:var(${m.bar})"></div></span>
+    <span class="mini-bar" title="${escapeAttr(barTitle)}"><div class="cum-before" style="width:${Math.min(100, beforePct).toFixed(3)}%"></div><div class="cum-own" style="width:${Math.min(100, ownPct).toFixed(3)}%;background:var(${m.bar})"></div></span>
     <span class="count">${fmt(b.tokens)} tok</span>
   `;
   row.querySelector(".label").textContent = b.label;
+  // Per-turn cost: assistant rows carry `meta.usage` from the API response.
+  // Price it through the model's table and append $X.XX to the count column
+  // (right after the token total). High-cost turns (>= $0.05) get a redder
+  // pill so they're easier to scan for.
+  if (b.kind === "assistant") {
+    const tc = turnCost(b, state.session && state.session.detectedModel);
+    if (tc && tc.total > 0) {
+      const badge = document.createElement("span");
+      const big = tc.total >= 0.05;
+      badge.className = "cost-badge" + (big ? " big" : "");
+      badge.textContent = fmtCost(tc.total);
+      badge.title =
+        `Turn cost: ${fmtCost(tc.total)} on ${tc.model}\n` +
+        `• input (fresh):  ${fmt(tc.input)} tok × $${tc.price.input}/Mtok = $${((tc.input * tc.price.input)/1e6).toFixed(4)}\n` +
+        `• cache write:    ${fmt(tc.cwrite)} tok × $${(tc.price.cache_write ?? tc.price.input*1.25)}/Mtok = $${((tc.cwrite * (tc.price.cache_write ?? tc.price.input*1.25))/1e6).toFixed(4)}\n` +
+        `• cache read:     ${fmt(tc.cread)} tok × $${(tc.price.cache_read ?? tc.price.input*0.1)}/Mtok = $${((tc.cread * (tc.price.cache_read ?? tc.price.input*0.1))/1e6).toFixed(4)}\n` +
+        `• output:         ${fmt(tc.output)} tok × $${tc.price.output}/Mtok = $${((tc.output * tc.price.output)/1e6).toFixed(4)}`;
+      row.querySelector(".count").appendChild(badge);
+    }
+  }
+  // Permission mode badge: surface plan / bypassPermissions / acceptEdits
+  // on user rows so reviewers can see which turns were gated or auto-accepted.
+  if ((b.kind === "user" || b.kind === "framework") && b.meta && b.meta.permissionMode
+      && b.meta.permissionMode !== "default") {
+    const pm = b.meta.permissionMode;
+    const badge = document.createElement("span");
+    badge.className = `perm-badge ${pm}`;
+    badge.textContent = pm;
+    badge.title = `permissionMode: ${pm}`;
+    row.querySelector(".label").appendChild(badge);
+  }
+  // Tool-use ↔ tool-result jump affordance. On tool_use rows, offer "↓" to
+  // the matching result; on tool_result rows, offer "↑" to the originating
+  // use. Path comes from the pre-computed _toolLinks map on state.session.
+  const links = state.session && state.session._toolLinks;
+  if (links) {
+    let id = null, target = null, arrow = "";
+    if (b.kind === "tool_use")         { id = b.meta && b.meta.id;          arrow = "↓"; }
+    else if (b.kind === "tool_result") { id = b.meta && b.meta.tool_use_id; arrow = "↑"; }
+    const pair = id && links[id];
+    if (pair) {
+      if (b.kind === "tool_use" && pair.resultPath) target = pair.resultPath;
+      else if (b.kind === "tool_result" && pair.usePath) target = pair.usePath;
+    }
+    if (target) {
+      const jump = document.createElement("span");
+      jump.className = "tool-jump";
+      jump.textContent = arrow;
+      jump.title = b.kind === "tool_use" ? "Jump to matching tool_result" : "Jump to matching tool_use";
+      jump.dataset.target = target.join(",");
+      jump.addEventListener("click", (e) => {
+        e.stopPropagation();
+        jumpToDetail(target);
+      });
+      row.querySelector(".label").appendChild(jump);
+    }
+  }
   wrap.appendChild(row);
 
   if (hasBody) {
-    const body = document.createElement("pre");
+    const wrapBody = document.createElement("div");
+    wrapBody.className = "body-wrap";
+    wrapBody.dataset.raw = b.text;
+    wrapBody.style.display = open ? "block" : "none";
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "body-copy";
+    copyBtn.type = "button";
+    copyBtn.textContent = "Copy";
+    copyBtn.title = "Copy block text";
+    wrapBody.appendChild(copyBtn);
+    const body = document.createElement("div");
     body.className = "body";
-    body.innerHTML = highlightMaybe(b.text, b.kind);
-    body.style.display = open ? "block" : "none";
-    wrap.appendChild(body);
+    body.innerHTML = highlightMaybe(b.text, b.kind, b);
+    wrapBody.appendChild(body);
+    wrap.appendChild(wrapBody);
+  }
+  // Claude Code persists oversized tool outputs to a .txt file on disk. The
+  // JSONL has only a ~2KB preview the model saw. Surface the full stdout
+  // (~30K from toolUseResult) and the on-disk file (can be many MB) as
+  // opt-in buttons.
+  if (b.kind === "tool_result" && b.meta && b.meta.persisted) {
+    const panel = renderPersistedPanel(b);
+    panel.style.display = open ? "block" : "none";
+    wrap.appendChild(panel);
   }
   if (hasChildren) {
     const kids = document.createElement("div");
@@ -1027,6 +2267,71 @@ function renderNode(b, depth, path, total, search) {
     });
   }
   return wrap;
+}
+
+function renderPersistedPanel(b) {
+  const m = b.meta || {};
+  const panel = document.createElement("div");
+  panel.className = "persisted";
+  const sizeStr = m.persistedOutputSize ? humanSize(m.persistedOutputSize) : "?";
+  const stdoutLen = m.fullStdout ? m.fullStdout.length : 0;
+  const name = (m.persistedOutputPath || "").split("/").pop() || "";
+  panel.innerHTML = `
+    <div class="p-head">
+      <div class="info">
+        <b>${escapeHTML(sizeStr)}</b> persisted to disk
+        <span class="muted">· model saw ${fmt(b.tokens)} tok preview · Claude cached ${fmt(stdoutLen)} chars locally</span>
+      </div>
+      <div>
+        ${stdoutLen ? `<button class="btn-stdout" type="button">Show local stdout (${humanSize(stdoutLen)})</button>` : ""}
+        ${name ? `<button class="btn-full" type="button">Load full file (${escapeHTML(sizeStr)})</button>` : ""}
+      </div>
+    </div>
+    <pre class="p-content stdout"></pre>
+    <pre class="p-content full"></pre>
+    <div class="p-note">Token math above is based on the preview the model actually saw, not these local copies.</div>
+  `;
+  const stdoutPre = panel.querySelector(".p-content.stdout");
+  const fullPre = panel.querySelector(".p-content.full");
+  const btnStdout = panel.querySelector(".btn-stdout");
+  const btnFull = panel.querySelector(".btn-full");
+  if (btnStdout) {
+    btnStdout.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!stdoutPre.textContent) stdoutPre.textContent = m.fullStdout || "";
+      panel.classList.toggle("open-stdout");
+      btnStdout.textContent = panel.classList.contains("open-stdout")
+        ? `Hide local stdout`
+        : `Show local stdout (${humanSize(stdoutLen)})`;
+    });
+  }
+  if (btnFull) {
+    btnFull.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (panel.classList.contains("open-full")) {
+        panel.classList.remove("open-full");
+        btnFull.textContent = `Load full file (${sizeStr})`;
+        return;
+      }
+      if (!fullPre.textContent) {
+        btnFull.disabled = true;
+        btnFull.textContent = "Loading…";
+        try {
+          const url = `/api/tool-result?id=${encodeURIComponent(state.current)}&name=${encodeURIComponent(name)}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          fullPre.textContent = await res.text();
+        } catch (err) {
+          fullPre.textContent = `Failed to load: ${String(err)}`;
+        } finally {
+          btnFull.disabled = false;
+        }
+      }
+      panel.classList.add("open-full");
+      btnFull.textContent = `Hide full file`;
+    });
+  }
+  return panel;
 }
 
 function setAll(open) {
@@ -1067,15 +2372,384 @@ function jumpToDetail(path) {
 }
 
 // ---------- JSON / code highlighter (very small) ----------
-function highlightMaybe(text, kind) {
-  // try JSON highlighting for tool_use inputs
-  if ((kind === "tool_use" || kind === "tool_result") && /^[\s{[]/.test(text)) {
-    try {
-      const j = JSON.parse(text);
-      return highlightJSON(JSON.stringify(j, null, 2));
-    } catch { /* fall through */ }
+function highlightMaybe(text, kind, block) {
+  // Tool-use — try a pretty card first, fall back to JSON highlighting
+  if (kind === "tool_use") {
+    const card = renderToolCard(text, block);
+    if (card) return card;
+    if (/^[\s{[]/.test(text)) {
+      try {
+        const j = JSON.parse(text);
+        return highlightJSON(JSON.stringify(j, null, 2));
+      } catch { /* fall through */ }
+    }
+  }
+  // tool_results — try JSON, then ANSI, then plain
+  if (kind === "tool_result") {
+    if (/^[\s{[]/.test(text)) {
+      try {
+        const j = JSON.parse(text);
+        return highlightJSON(JSON.stringify(j, null, 2));
+      } catch { /* fall through */ }
+    }
+    if (/\x1b\[[0-9;?]*[A-Za-z]/.test(text)) return renderAnsi(text);
+  }
+  // assistant / user / thinking prose is usually markdown
+  if (kind === "text" || kind === "thinking") {
+    return `<div class="md">${renderMarkdown(text)}</div>`;
   }
   return escapeHTML(text);
+}
+
+// ---------- tool cards ----------
+// Each renderer receives the parsed input object and returns an HTML fragment
+// (inside a `.tc` wrapper) suited to that tool. The outer shell also includes
+// a "Show raw" toggle so the underlying JSON stays one click away.
+function renderToolCard(rawText, block) {
+  const name = block && block.meta && block.meta.name;
+  if (!name) return null;
+  const renderer = TOOL_RENDERERS[name];
+  if (!renderer) return null;
+  let input;
+  try { input = JSON.parse(rawText); }
+  catch { return null; }
+  let body;
+  try { body = renderer(input); }
+  catch { return null; }
+  if (!body) return null;
+  const raw = escapeHTML(rawText);
+  return `<div class="tc">
+    <div class="tc-head"><span class="tc-tool">${escapeHTML(name)}</span></div>
+    ${body}
+    <div class="tc-toggle-raw"
+         onclick="this.parentElement.classList.toggle('raw-on')">Show / hide raw JSON</div>
+    <pre class="tc-raw">${raw}</pre>
+  </div>`;
+}
+
+const TOOL_RENDERERS = {
+  Bash(i) {
+    const cmd = escapeHTML(i.command || "");
+    const desc = i.description ? `<div class="tc-desc">${escapeHTML(i.description)}</div>` : "";
+    const bg = i.run_in_background ? ` <span class="tc-desc">(background)</span>` : "";
+    const to = i.timeout ? ` <span class="tc-desc">(timeout ${fmt(i.timeout)}ms)</span>` : "";
+    return `${desc}
+      <div class="tc-cmd"><span class="tc-prompt">$</span>${cmd}${bg}${to}</div>`;
+  },
+
+  Read(i) {
+    const p = escapeHTML(i.file_path || "");
+    const range = i.offset || i.limit
+      ? `<span class="tc-desc">(lines ${fmt(i.offset || 1)}${i.limit ? `–${fmt((i.offset || 1) + i.limit - 1)}` : ""})</span>` : "";
+    const pages = i.pages ? `<span class="tc-desc">(pages ${escapeHTML(i.pages)})</span>` : "";
+    return `<div class="tc-head"><span class="tc-path">${p}</span>${range}${pages}</div>`;
+  },
+
+  Edit(i) {
+    const p = escapeHTML(i.file_path || "");
+    const all = i.replace_all ? ` <span class="tc-desc">(replace all)</span>` : "";
+    const diffLines = (txt, cls) => escapeHTML(txt || "").split("\n")
+      .map(l => `<div class="line ${cls}">${cls === "old" ? "-" : "+"} ${l || " "}</div>`).join("");
+    return `<div class="tc-head"><span class="tc-path">${p}</span>${all}</div>
+      <div class="tc-diff">
+        ${diffLines(i.old_string, "old")}
+        ${diffLines(i.new_string, "new")}
+      </div>`;
+  },
+
+  MultiEdit(i) {
+    const p = escapeHTML(i.file_path || "");
+    const edits = Array.isArray(i.edits) ? i.edits : [];
+    const diffs = edits.map((e, idx) => {
+      const old_ = escapeHTML(e.old_string || "").split("\n")
+        .map(l => `<div class="line old">- ${l || " "}</div>`).join("");
+      const new_ = escapeHTML(e.new_string || "").split("\n")
+        .map(l => `<div class="line new">+ ${l || " "}</div>`).join("");
+      return `<div class="tc-desc" style="margin-top:6px">Edit ${idx+1}${e.replace_all ? " (replace all)" : ""}</div>
+        <div class="tc-diff">${old_}${new_}</div>`;
+    }).join("");
+    return `<div class="tc-head"><span class="tc-path">${p}</span>
+      <span class="tc-desc">${edits.length} edit${edits.length === 1 ? "" : "s"}</span></div>
+      ${diffs}`;
+  },
+
+  Write(i) {
+    const p = escapeHTML(i.file_path || "");
+    const content = i.content || "";
+    const lines = content.split("\n").length;
+    const bytes = content.length;
+    const preview = escapeHTML(content.split("\n").slice(0, 20).join("\n"));
+    const trunc = content.split("\n").length > 20 ? "\n…" : "";
+    return `<div class="tc-head"><span class="tc-path">${p}</span>
+      <span class="tc-desc">${fmt(lines)} line${lines === 1 ? "" : "s"} · ${humanSize(bytes)}</span></div>
+      <div class="tc-cmd">${preview}${trunc}</div>`;
+  },
+
+  Glob(i) {
+    const pat = escapeHTML(i.pattern || "");
+    const where = i.path ? ` <span class="tc-desc">in <span class="tc-path">${escapeHTML(i.path)}</span></span>` : "";
+    return `<div class="tc-head"><span class="tc-path">${pat}</span>${where}</div>`;
+  },
+
+  Grep(i) {
+    const pat = escapeHTML(i.pattern || "");
+    const where = i.path ? ` <span class="tc-desc">in <span class="tc-path">${escapeHTML(i.path)}</span></span>` : "";
+    const flags = [];
+    if (i["-i"]) flags.push("case-insensitive");
+    if (i["-n"]) flags.push("line numbers");
+    if (i.multiline) flags.push("multiline");
+    if (i.output_mode) flags.push(`mode=${i.output_mode}`);
+    if (i.type) flags.push(`type=${i.type}`);
+    if (i.glob) flags.push(`glob=${i.glob}`);
+    const flagsHtml = flags.length ? `<div class="tc-desc">${escapeHTML(flags.join(" · "))}</div>` : "";
+    return `<div class="tc-head"><span class="tc-path">${pat}</span>${where}</div>${flagsHtml}`;
+  },
+
+  WebFetch(i) {
+    const url = i.url || "";
+    const prompt = i.prompt ? `<div class="tc-desc" style="margin-top:4px">${escapeHTML(i.prompt)}</div>` : "";
+    return `<div class="tc-url">${escapeHTML(url)}</div>${prompt}`;
+  },
+
+  WebSearch(i) {
+    const q = escapeHTML(i.query || "");
+    const bits = [];
+    if (Array.isArray(i.allowed_domains) && i.allowed_domains.length) bits.push(`allow: ${i.allowed_domains.join(", ")}`);
+    if (Array.isArray(i.blocked_domains) && i.blocked_domains.length) bits.push(`block: ${i.blocked_domains.join(", ")}`);
+    const extras = bits.length ? `<div class="tc-desc">${escapeHTML(bits.join(" · "))}</div>` : "";
+    return `<div class="tc-cmd">${q}</div>${extras}`;
+  },
+
+  Task(i) {
+    const type = i.subagent_type ? `<span class="tc-desc">[${escapeHTML(i.subagent_type)}]</span>` : "";
+    const desc = i.description ? `<span style="font-weight:500">${escapeHTML(i.description)}</span>` : "";
+    const prompt = i.prompt
+      ? `<div class="tc-desc" style="margin-top:6px">Prompt:</div>
+         <div class="tc-cmd">${escapeHTML(i.prompt.slice(0, 2000))}${i.prompt.length > 2000 ? "\n…" : ""}</div>`
+      : "";
+    return `<div class="tc-head">${desc} ${type}</div>${prompt}`;
+  },
+
+  TodoWrite(i) {
+    const todos = Array.isArray(i.todos) ? i.todos : [];
+    const mark = (st) => st === "completed" ? "☑"
+                       : st === "in_progress" ? "▶" : "☐";
+    const cls = (st) => st === "completed" ? "done" : st === "in_progress" ? "in_progress" : "";
+    const rows = todos.map(t => {
+      const s = t.status || "pending";
+      const text = t.content || t.activeForm || "";
+      return `<li class="${cls(s)}"><span class="mark">${mark(s)}</span>
+        <span class="text">${escapeHTML(text)}</span></li>`;
+    }).join("");
+    return `<ul class="tc-todos">${rows || `<li class="tc-desc">(no todos)</li>`}</ul>`;
+  },
+
+  NotebookEdit(i) {
+    const p = escapeHTML(i.notebook_path || "");
+    const cellId = i.cell_id ? `cell <code>${escapeHTML(i.cell_id)}</code>` : "";
+    const type = i.cell_type ? ` (${escapeHTML(i.cell_type)})` : "";
+    const mode = i.edit_mode ? ` · ${escapeHTML(i.edit_mode)}` : "";
+    const src = i.new_source ? `<div class="tc-cmd">${escapeHTML(i.new_source.slice(0, 2000))}</div>` : "";
+    return `<div class="tc-head"><span class="tc-path">${p}</span>
+      <span class="tc-desc">${cellId}${type}${mode}</span></div>${src}`;
+  },
+};
+
+// ---------- markdown (tiny) ----------
+// Supports: # / ## / ### / #### headings, **bold** / __bold__, *em* / _em_,
+// `inline code`, ```fenced code```, [text](url), - / * / 1. lists, > quotes,
+// --- hr, paragraphs. Ignores tables, footnotes, html. Escapes HTML always.
+function renderMarkdown(src) {
+  if (!src) return "";
+  const lines = src.replace(/\r\n?/g, "\n").split("\n");
+  const out = [];
+  let i = 0;
+  const inline = (s) => {
+    // escape first, then re-inject safe tags using placeholders for code
+    s = escapeHTML(s);
+    // inline code first — protect from other transforms
+    const codes = [];
+    s = s.replace(/`([^`\n]+)`/g, (_, c) => {
+      codes.push(`<code>${c}</code>`); return `\x00C${codes.length - 1}\x00`;
+    });
+    // links [text](url) — reject dangerous schemes. `s` has already been
+    // HTML-escaped, so `u` is safe to put into an attribute as-is.
+    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => {
+      const safe = /^(?:https?:|mailto:|\/|#|\.\/|\.\.\/)/i.test(u);
+      if (!safe) return `[${t}](${u})`;
+      return `<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`;
+    });
+    // bold + italic (order matters: ** before *)
+    s = s.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/__([^_\n]+)__/g, "<strong>$1</strong>");
+    s = s.replace(/(^|[^\w*])\*([^*\n]+)\*(?!\w)/g, "$1<em>$2</em>");
+    s = s.replace(/(^|[^\w_])_([^_\n]+)_(?!\w)/g, "$1<em>$2</em>");
+    // restore code
+    s = s.replace(/\x00C(\d+)\x00/g, (_, n) => codes[+n]);
+    return s;
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // fenced code
+    const fence = /^```(\w*)\s*$/.exec(line);
+    if (fence) {
+      const lang = fence[1] || "";
+      const buf = [];
+      i++;
+      while (i < lines.length && !/^```\s*$/.test(lines[i])) { buf.push(lines[i]); i++; }
+      i++; // skip closing fence (or EOF)
+      out.push(`<pre><code${lang ? ` class="lang-${lang}"` : ""}>${escapeHTML(buf.join("\n"))}</code></pre>`);
+      continue;
+    }
+
+    // heading
+    const h = /^(#{1,4})\s+(.+?)\s*#*$/.exec(line);
+    if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+
+    // hr
+    if (/^\s*(?:-\s*){3,}\s*$/.test(line) || /^\s*(?:\*\s*){3,}\s*$/.test(line)) {
+      out.push("<hr>"); i++; continue;
+    }
+
+    // blockquote
+    if (/^>\s?/.test(line)) {
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, "")); i++; }
+      out.push(`<blockquote>${inline(buf.join(" ").trim())}</blockquote>`);
+      continue;
+    }
+
+    // unordered list
+    if (/^\s*[-*+]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*+]\s+/, "")); i++;
+      }
+      out.push(`<ul>${items.map(x => `<li>${inline(x)}</li>`).join("")}</ul>`);
+      continue;
+    }
+
+    // ordered list
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*\d+\.\s+/, "")); i++;
+      }
+      out.push(`<ol>${items.map(x => `<li>${inline(x)}</li>`).join("")}</ol>`);
+      continue;
+    }
+
+    // blank
+    if (!line.trim()) { i++; continue; }
+
+    // paragraph — collect until blank line / block-ish line
+    const buf = [line];
+    i++;
+    while (i < lines.length && lines[i].trim() &&
+           !/^(#{1,4})\s/.test(lines[i]) && !/^```/.test(lines[i]) &&
+           !/^>\s?/.test(lines[i]) && !/^\s*[-*+]\s+/.test(lines[i]) &&
+           !/^\s*\d+\.\s+/.test(lines[i])) {
+      buf.push(lines[i]); i++;
+    }
+    out.push(`<p>${inline(buf.join(" "))}</p>`);
+  }
+  return out.join("");
+}
+
+// ANSI renderer — supports SGR (color/bold/dim/italic/underline/reverse),
+// 256-color (38;5;N / 48;5;N) mapped to nearest 16, and truecolor (38;2;R;G;B)
+// rendered as inline style. Unknown escapes are swallowed.
+function renderAnsi(text) {
+  const state = { fg: null, bg: null, bold: false, dim: false, italic: false, underline: false, reverse: false, fgStyle: null, bgStyle: null };
+  let out = "";
+  let openSpan = false;
+  const close = () => { if (openSpan) { out += "</span>"; openSpan = false; } };
+  const open = () => {
+    const cls = [];
+    if (state.bold) cls.push("ansi-b");
+    if (state.dim) cls.push("ansi-d");
+    if (state.italic) cls.push("ansi-i");
+    if (state.underline) cls.push("ansi-u");
+    if (state.reverse) cls.push("ansi-r");
+    if (state.fg !== null) cls.push("ansi-fg-" + state.fg);
+    const styleBits = [];
+    if (state.fgStyle) styleBits.push("color:" + state.fgStyle);
+    if (state.bgStyle) styleBits.push("background:" + state.bgStyle);
+    if (!cls.length && !styleBits.length) return;
+    const attrs = [
+      cls.length ? `class="${cls.join(" ")}"` : "",
+      styleBits.length ? `style="${styleBits.join(";")}"` : "",
+    ].filter(Boolean).join(" ");
+    out += `<span ${attrs}>`;
+    openSpan = true;
+  };
+  const applyCodes = (codes) => {
+    close();
+    for (let i = 0; i < codes.length; i++) {
+      const n = codes[i];
+      if (n === 0 || isNaN(n)) { // reset
+        state.fg = null; state.bg = null; state.fgStyle = null; state.bgStyle = null;
+        state.bold = state.dim = state.italic = state.underline = state.reverse = false;
+      }
+      else if (n === 1) state.bold = true;
+      else if (n === 2) state.dim = true;
+      else if (n === 3) state.italic = true;
+      else if (n === 4) state.underline = true;
+      else if (n === 7) state.reverse = true;
+      else if (n === 22) { state.bold = false; state.dim = false; }
+      else if (n === 23) state.italic = false;
+      else if (n === 24) state.underline = false;
+      else if (n === 27) state.reverse = false;
+      else if (n >= 30 && n <= 37) { state.fg = n - 30; state.fgStyle = null; }
+      else if (n === 39) { state.fg = null; state.fgStyle = null; }
+      else if (n >= 90 && n <= 97) { state.fg = n - 90 + 8; state.fgStyle = null; }
+      else if (n >= 40 && n <= 47 || n >= 100 && n <= 107) {
+        // backgrounds — render via inline style using the matching fg class colors
+        // Simplest: ignore bg (rare in tool output) or use a translucent version.
+        // We skip colored bg for now except truecolor below.
+      }
+      else if (n === 38 && codes[i+1] === 5) {
+        const idx = +codes[i+2]; i += 2;
+        if (idx < 16) { state.fg = idx; state.fgStyle = null; }
+        else if (idx >= 232) { // grayscale
+          const gray = 8 + (idx - 232) * 10;
+          state.fgStyle = `rgb(${gray},${gray},${gray})`; state.fg = null;
+        } else {
+          const c = idx - 16;
+          const r = Math.floor(c / 36), g = Math.floor((c % 36) / 6), b = c % 6;
+          const ch = v => [0, 95, 135, 175, 215, 255][v];
+          state.fgStyle = `rgb(${ch(r)},${ch(g)},${ch(b)})`; state.fg = null;
+        }
+      }
+      else if (n === 38 && codes[i+1] === 2) {
+        const r = +codes[i+2], g = +codes[i+3], b = +codes[i+4]; i += 4;
+        state.fgStyle = `rgb(${r},${g},${b})`; state.fg = null;
+      }
+      else if (n === 48 && (codes[i+1] === 5 || codes[i+1] === 2)) {
+        // skip bg truecolor/256 gracefully
+        i += codes[i+1] === 5 ? 2 : 4;
+      }
+    }
+    open();
+  };
+
+  const re = /\x1b\[([0-9;]*)([A-Za-z])/g;
+  let last = 0;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out += escapeHTML(text.slice(last, m.index));
+    if (m[2] === "m") {
+      const codes = m[1] === "" ? [0] : m[1].split(";").map(x => +x);
+      applyCodes(codes);
+    }
+    // ignore cursor-move and other CSI sequences
+    last = re.lastIndex;
+  }
+  if (last < text.length) out += escapeHTML(text.slice(last));
+  close();
+  return out;
 }
 function highlightJSON(s) {
   return escapeHTML(s)
@@ -1110,8 +2784,259 @@ function escapeHTML(s) {
 function escapeAttr(s) { return escapeHTML(s); }
 
 // ---------- wiring ----------
+document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+
+// ---------- live updates (SSE) ----------
+let _es = null;
+function startLiveUpdates() {
+  if (_es) return;
+  if (typeof EventSource === "undefined") return;
+  try { _es = new EventSource("/api/events"); }
+  catch { return; }
+  _es.addEventListener("hello", () => setLiveIndicator(true));
+  _es.addEventListener("session-added",   onSessionChanged);
+  _es.addEventListener("session-removed", onSessionChanged);
+  _es.addEventListener("session-updated", onSessionChanged);
+  _es.onerror = () => setLiveIndicator(false); // EventSource auto-reconnects
+  _es.onopen  = () => setLiveIndicator(true);
+}
+async function onSessionChanged(e) {
+  let data = {};
+  try { data = JSON.parse(e.data || "{}"); } catch {}
+  const { id } = data;
+  // If the currently-open session changed on disk, refetch and re-render it.
+  if (id && state.current === id && e.type === "session-updated") {
+    try {
+      const res = await fetch("/api/session?id=" + encodeURIComponent(id));
+      if (res.ok) {
+        const s = await res.json();
+        if (!s.error) {
+          state.session = s;
+          document.getElementById("title").textContent = s.title || "(untitled)";
+          renderTab();
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  // Always refresh the sidebar so added/removed sessions appear.
+  refreshSessions();
+}
+function setLiveIndicator(on) {
+  const el = document.getElementById("live-indicator");
+  if (!el) return;
+  el.classList.toggle("on", !!on);
+  el.title = on ? "Live updates connected" : "Reconnecting…";
+}
+
+// ---------- global search ----------
+let _searchDebounce = null;
+let _searchSeq = 0;
+function renderSearchResults() {
+  const list = document.getElementById("sess-list");
+  const badge = document.getElementById("session-count");
+  if (!state.query) {
+    list.innerHTML = `<div class="search-status">Type to search across all conversations.<br>Content cache warms on first query.</div>`;
+    badge.textContent = "";
+    return;
+  }
+  if (state.searchLoading) {
+    list.innerHTML = `<div class="search-status">Searching…</div>`;
+    badge.textContent = "";
+    return;
+  }
+  if (state.searchError) {
+    list.innerHTML = `<div class="search-status" style="color:var(--tr-fg)">${escapeHTML(state.searchError)}</div>`;
+    badge.textContent = "";
+    return;
+  }
+  const results = state.searchResults || [];
+  if (!results.length) {
+    list.innerHTML = `<div class="search-status">No matches for “${escapeHTML(state.query)}”.</div>`;
+    badge.textContent = "0 hits";
+    return;
+  }
+  const totalHits = results.reduce((n, r) => n + r.count, 0);
+  badge.textContent = `${fmt(totalHits)} hit${totalHits === 1 ? "" : "s"} · ${results.length} session${results.length === 1 ? "" : "s"}`;
+  list.innerHTML = results.map(r => {
+    const when = new Date(r.mtime * 1000).toLocaleString();
+    const first = r.hits[0];
+    const more = r.hits.length > 1 ? `<div class="more">+${r.hits.length - 1} more hit${r.hits.length === 2 ? "" : "s"} in this session</div>` : "";
+    const snippet = renderSnippet(first.snippet, first.mark);
+    return `<div class="search-hit" data-id="${escapeAttr(r.id)}">
+      <div class="title">${escapeHTML(r.title || "(untitled)")}</div>
+      <div class="row2">
+        <span><span class="badge ${r.client}">${r.client}</span> ${r.count} hit${r.count === 1 ? "" : "s"}</span>
+        <span>${when}</span>
+      </div>
+      <div class="snippet">${snippet}</div>
+      ${more}
+    </div>`;
+  }).join("");
+  for (const el of list.querySelectorAll(".search-hit")) {
+    el.addEventListener("click", () => openSearchHit(el.dataset.id));
+  }
+}
+function renderSnippet(text, mark) {
+  if (!mark || mark.length !== 2) return escapeHTML(text);
+  const [a, b] = mark;
+  return escapeHTML(text.slice(0, a))
+       + `<mark>${escapeHTML(text.slice(a, b))}</mark>`
+       + escapeHTML(text.slice(b));
+}
+async function runSearch() {
+  const q = state.query;
+  if (!q) {
+    state.searchResults = null; state.searchError = null;
+    state.searchLoading = false;
+    renderSearchResults();
+    return;
+  }
+  const seq = ++_searchSeq;
+  state.searchLoading = true; state.searchError = null;
+  renderSearchResults();
+  const params = new URLSearchParams({ q });
+  if (state.searchRegex) params.set("regex", "1");
+  if (state.searchCase)  params.set("case",  "1");
+  if (state.filter !== "all") params.set("clients", state.filter);
+  try {
+    const res = await fetch("/api/search?" + params.toString());
+    if (seq !== _searchSeq) return; // stale response — ignore
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    state.searchResults = data.results || [];
+    state.searchLoading = false;
+    renderSearchResults();
+  } catch (e) {
+    if (seq !== _searchSeq) return;
+    state.searchLoading = false;
+    state.searchError = "Search failed: " + String(e);
+    renderSearchResults();
+  }
+}
+function openSearchHit(id) {
+  const q = state.query;
+  openSession(id).then(() => {
+    state.tab = "detailed";
+    state.detail.search = q;
+    renderTab();
+    writeHash();
+  });
+}
+function setSearchMode(mode) {
+  if (state.searchMode === mode) return;
+  state.searchMode = mode;
+  document.getElementById("mode-filter").classList.toggle("on", mode === "filter");
+  document.getElementById("mode-global").classList.toggle("on", mode === "global");
+  document.getElementById("search-opts").style.display = mode === "global" ? "inline" : "none";
+  document.getElementById("q").placeholder = mode === "global"
+    ? "Search within conversations"
+    : "Filter conversations by title";
+  state.searchResults = null; state.searchError = null;
+  renderList();
+  if (mode === "global" && state.query) runSearch();
+}
+document.getElementById("mode-filter").addEventListener("click", () => setSearchMode("filter"));
+document.getElementById("mode-global").addEventListener("click", () => setSearchMode("global"));
+document.getElementById("search-regex").addEventListener("change", e => {
+  state.searchRegex = e.target.checked;
+  if (state.searchMode === "global" && state.query) runSearch();
+});
+document.getElementById("search-case").addEventListener("change", e => {
+  state.searchCase = e.target.checked;
+  if (state.searchMode === "global" && state.query) runSearch();
+});
+
+// ---------- keyboard navigation ----------
+function filteredSessions() {
+  const q = state.query.toLowerCase();
+  return state.sessions.filter(s => {
+    if (state.filter !== "all" && s.client !== state.filter) return false;
+    if (state.hideAudit && isAudit(s)) return false;
+    if (q && !(s.title.toLowerCase().includes(q) || s.path.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function moveSession(delta) {
+  const list = filteredSessions();
+  if (!list.length) return;
+  const idx = list.findIndex(s => s.id === state.current);
+  const next = list[Math.max(0, Math.min(list.length - 1, (idx === -1 ? 0 : idx + delta)))];
+  if (next && next.id !== state.current) {
+    openSession(next.id);
+    // Keep the active row visible.
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`.sess[data-id="${CSS.escape(next.id)}"]`);
+      if (el) el.scrollIntoView({ block: "nearest" });
+    });
+  }
+}
+function toggleShortcutsOverlay(force) {
+  const o = document.getElementById("shortcuts-overlay");
+  const on = force != null ? force : !o.classList.contains("on");
+  o.classList.toggle("on", on);
+}
+function isTypingTarget(el) {
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+}
+let _pendingG = false;
+document.addEventListener("keydown", e => {
+  // Esc always works, even inside inputs.
+  if (e.key === "Escape") {
+    if (document.getElementById("shortcuts-overlay").classList.contains("on")) {
+      toggleShortcutsOverlay(false); e.preventDefault(); return;
+    }
+    if (isTypingTarget(document.activeElement)) {
+      document.activeElement.blur();
+      const q = document.getElementById("q");
+      if (q && q.value) { q.value = ""; state.query = ""; renderList(); }
+      e.preventDefault();
+      return;
+    }
+  }
+  if (isTypingTarget(document.activeElement)) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+  if (_pendingG) {
+    _pendingG = false;
+    if (e.key === "s") { state.tab = "simple";   renderTab(); writeHash(); e.preventDefault(); return; }
+    if (e.key === "d") { state.tab = "detailed"; renderTab(); writeHash(); e.preventDefault(); return; }
+    // Fall through for anything else
+  }
+
+  switch (e.key) {
+    case "j": moveSession(+1); e.preventDefault(); break;
+    case "k": moveSession(-1); e.preventDefault(); break;
+    case "/": {
+      const q = document.getElementById("q");
+      if (q) { q.focus(); q.select(); }
+      e.preventDefault(); break;
+    }
+    case "g": _pendingG = true; setTimeout(() => { _pendingG = false; }, 800); break;
+    case "]":
+      if (state.tab === "detailed" && typeof setAll === "function") { setAll(true);  e.preventDefault(); }
+      break;
+    case "[":
+      if (state.tab === "detailed" && typeof setAll === "function") { setAll(false); e.preventDefault(); }
+      break;
+    case "t": toggleTheme(); e.preventDefault(); break;
+    case "?": toggleShortcutsOverlay(); e.preventDefault(); break;
+  }
+});
+document.getElementById("shortcuts-overlay").addEventListener("click", e => {
+  if (e.target.id === "shortcuts-overlay") toggleShortcutsOverlay(false);
+});
+
 document.getElementById("q").addEventListener("input", e => {
-  state.query = e.target.value; renderList();
+  state.query = e.target.value;
+  if (state.searchMode === "global") {
+    clearTimeout(_searchDebounce);
+    _searchDebounce = setTimeout(runSearch, 300);
+    renderSearchResults();
+  } else {
+    renderList();
+  }
 });
 document.getElementById("hide-audit").addEventListener("change", e => {
   state.hideAudit = e.target.checked; renderList();
@@ -1120,12 +3045,75 @@ for (const chip of document.querySelectorAll(".filters .chip")) {
   chip.addEventListener("click", () => {
     for (const c of document.querySelectorAll(".filters .chip")) c.classList.remove("on");
     chip.classList.add("on");
-    state.filter = chip.dataset.filter; renderList();
+    state.filter = chip.dataset.filter;
+    if (state.searchMode === "global" && state.query) runSearch();
+    else renderList();
   });
 }
 document.addEventListener("click", e => {
   const t = e.target.closest(".tab");
-  if (t) { state.tab = t.dataset.tab; renderTab(); }
+  if (t) { state.tab = t.dataset.tab; renderTab(); writeHash(); }
+});
+window.addEventListener("hashchange", applyHash);
+
+// ---------- export menu ----------
+const exportMenu = document.getElementById("export-menu");
+document.getElementById("export-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  exportMenu.classList.toggle("on");
+});
+document.addEventListener("click", e => {
+  if (!exportMenu.contains(e.target)) exportMenu.classList.remove("on");
+});
+for (const a of exportMenu.querySelectorAll(".menu a")) {
+  a.addEventListener("click", e => {
+    e.preventDefault();
+    if (!state.current) return;
+    const fmt = a.dataset.fmt;
+    const url = `/api/session/export?id=${encodeURIComponent(state.current)}&fmt=${fmt}`;
+    // Use a hidden anchor to preserve the server-sent filename header.
+    const link = document.createElement("a");
+    link.href = url;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    exportMenu.classList.remove("on");
+  });
+}
+
+// ---------- clipboard helpers ----------
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Fallback for non-secure contexts / older browsers
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.left = "-9999px";
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch {}
+    ta.remove();
+    return ok;
+  }
+}
+// Delegated handler: any .body-copy button copies its sibling body's text.
+document.addEventListener("click", async e => {
+  const btn = e.target.closest(".body-copy");
+  if (!btn) return;
+  e.stopPropagation();
+  const wrap = btn.closest(".body-wrap");
+  const raw = wrap && wrap.dataset.raw;
+  if (raw == null) return;
+  const ok = await copyToClipboard(raw);
+  if (ok) {
+    btn.classList.add("copied");
+    const prev = btn.textContent;
+    btn.textContent = "Copied";
+    setTimeout(() => { btn.classList.remove("copied"); btn.textContent = prev; }, 1400);
+  }
 });
 
 loadSessions();

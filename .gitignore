@@ -17,3 +17,7 @@ Thumbs.db
 # Editors
 .idea/
 .vscode/
+
+# Local working tree (not part of the project)
+CLAUDE.md
+claude-code/

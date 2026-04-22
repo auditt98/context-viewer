@@ -48,9 +48,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import queue
 import re
 import sys
 import threading
+import time
 import webbrowser
 from dataclasses import dataclass, field, asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -65,9 +67,16 @@ import tiktoken
 _ENC = tiktoken.get_encoding("cl100k_base")
 
 
-def est_tokens(text: str) -> int:
+def est_tokens(text) -> int:
     if not text:
         return 0
+    # Defensive: parsers should always produce string text, but a dict/list
+    # slipping through shouldn't crash the whole session render.
+    if not isinstance(text, str):
+        try:
+            text = json.dumps(text, ensure_ascii=False)
+        except (TypeError, ValueError):
+            text = repr(text)
     return len(_ENC.encode(text, disallowed_special=()))
 
 
@@ -82,6 +91,10 @@ class Block:
     meta: dict[str, Any] = field(default_factory=dict)
 
     def to_json(self) -> dict:
+        own_tokens = est_tokens(self.text)
+        # `tokens` historically meant own + immediate children. Keep that for
+        # compatibility with the mini-bar, but also expose the own-text count
+        # so the client can aggregate without unit-mismatched chars/4 math.
         return {
             "kind": self.kind,
             "label": self.label,
@@ -89,7 +102,8 @@ class Block:
             "children": [c.to_json() for c in self.children],
             "meta": self.meta,
             "chars": len(self.text) + sum(len(c.text) for c in self.children),
-            "tokens": est_tokens(self.text) + sum(est_tokens(c.text) for c in self.children),
+            "ownTokens": own_tokens,
+            "tokens": own_tokens + sum(est_tokens(c.text) for c in self.children),
         }
 
 
@@ -101,6 +115,10 @@ class Session:
     path: str
     mtime: float
     blocks: list[Block] = field(default_factory=list)
+    # Session-level metadata snapshotted from the first event that carries it
+    # (entrypoint, cwd, gitBranch, version, slug, sessionId, userType). These
+    # are repeated verbatim on every Claude Code event, so we lift them once.
+    context: dict[str, Any] = field(default_factory=dict)
 
     def summary(self) -> dict:
         total_chars = sum(len(b.text) for b in _walk(self.blocks))
@@ -115,6 +133,7 @@ class Session:
             "chars": total_chars,
             "tokens": total_tokens,
             "detectedModel": self._detect_model(),
+            "context": self.context,
         }
 
     def full(self) -> dict:
@@ -157,11 +176,32 @@ def _short(text: str, n: int = 80) -> str:
     return text if len(text) <= n else text[: n - 1] + "\u2026"
 
 
-def _blocks_from_content(content: Any) -> list[Block]:
+def humanize_bytes(n) -> str:
+    if not n:
+        return "0 B"
+    n = float(n)
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024:
+            return f"{n:.0f} {unit}" if n >= 10 or unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+    return f"{n:.1f} TB"
+
+
+_PERSISTED_RE = re.compile(r"^<persisted-output>", re.MULTILINE)
+
+
+def _blocks_from_content(content: Any, tool_use_result: Any = None) -> list[Block]:
     """
     Claude-style `message.content` is either a string or a list of blocks like
     [{"type": "text", "text": ...}, {"type": "tool_use", ...},
      {"type": "tool_result", "content": [...]}].
+
+    `tool_use_result`, when given, is the top-level `toolUseResult` field from
+    the outer user event. Claude Code stashes the full stdout (up to ~30K) and
+    a persisted-output pointer there, while `message.content` only has a ~2KB
+    preview the model actually saw. We keep block.text = what-the-model-saw
+    (correct for token math) and attach stdout / persistedOutputPath in meta
+    so the UI can surface the real content on demand.
     """
     if content is None:
         return []
@@ -204,15 +244,37 @@ def _blocks_from_content(content: Any) -> list[Block]:
             # The children carry the actual text payload; keep the parent's own
             # `text` empty so token/char aggregates don't double-count it.
             inner_tokens = sum(est_tokens(b.text) for b in sub)
+            meta: dict[str, Any] = {
+                "tool_use_id": item.get("tool_use_id"),
+                "is_error": item.get("is_error"),
+            }
+            # Detect Claude Code's persisted-output pattern: the 2KB preview
+            # string starts with "<persisted-output>". When we see that AND an
+            # outer toolUseResult exists, lift its stdout + persisted pointer
+            # into meta so the client can show the real payload on demand.
+            is_persisted = (
+                isinstance(inner, str) and _PERSISTED_RE.match(inner.lstrip())
+                or isinstance(tool_use_result, dict) and tool_use_result.get("persistedOutputPath")
+            )
+            if is_persisted and isinstance(tool_use_result, dict):
+                meta["persisted"] = True
+                if tool_use_result.get("stdout"):
+                    meta["fullStdout"] = tool_use_result["stdout"]
+                if tool_use_result.get("stderr"):
+                    meta["stderr"] = tool_use_result["stderr"]
+                if tool_use_result.get("persistedOutputPath"):
+                    meta["persistedOutputPath"] = tool_use_result["persistedOutputPath"]
+                if tool_use_result.get("persistedOutputSize"):
+                    meta["persistedOutputSize"] = tool_use_result["persistedOutputSize"]
+            size_note = ""
+            if meta.get("persistedOutputSize"):
+                size_note = f" · full {humanize_bytes(meta['persistedOutputSize'])} on disk"
             out.append(Block(
                 kind="tool_result",
-                label=f"tool_result ({inner_tokens} tok)",
+                label=f"tool_result ({inner_tokens} tok{size_note})",
                 text="",
                 children=sub,
-                meta={
-                    "tool_use_id": item.get("tool_use_id"),
-                    "is_error": item.get("is_error"),
-                },
+                meta=meta,
             ))
         elif t in ("image", "input_image"):
             src = item.get("source", {})
@@ -238,32 +300,363 @@ def _role_kind(role: str | None) -> str:
     }.get((role or "").lower(), "raw")
 
 
-def _parse_claude_entry(entry: dict) -> Block | None:
+def _parse_attachment(entry: dict) -> Block:
+    """Render one Claude Code `type:"attachment"` event as a Block.
+
+    Most subtypes are *framework context* injected into the model (skill
+    listing, MCP instructions, tool list) — we mark those `kind="framework"`
+    so they show up in the per-kind aggregates as their own slice rather than
+    hiding inside `meta`. State-change subtypes (plan mode, date change,
+    permissions, hooks, etc.) stay as `meta`.
+    """
+    att = entry.get("attachment") or {}
+    sub = att.get("type", "unknown")
+    common_meta = {
+        "subtype": sub,
+        "timestamp": entry.get("timestamp"),
+        "uuid": entry.get("uuid"),
+        "parentUuid": entry.get("parentUuid"),
+    }
+
+    if sub == "deferred_tools_delta":
+        added = att.get("addedNames") or []
+        removed = att.get("removedNames") or []
+        label = f"tools: +{len(added)}" + (f" / -{len(removed)}" if removed else "")
+        body = "\n".join(added)
+        if removed:
+            body += "\n\n\u2014 removed \u2014\n" + "\n".join(removed)
+        return Block(kind="framework", label=label, text=body,
+                     meta={**common_meta, "added": added, "removed": removed})
+
+    if sub == "mcp_instructions_delta":
+        names = att.get("addedNames") or []
+        blocks = att.get("addedBlocks") or []
+        body = "\n\n".join(blocks) if isinstance(blocks, list) else _stringify(blocks)
+        label = f"MCP instructions: {len(names)} server{'s' if len(names) != 1 else ''}"
+        return Block(kind="framework", label=label, text=body,
+                     meta={**common_meta, "servers": names})
+
+    if sub == "skill_listing":
+        count = att.get("skillCount", 0)
+        body = att.get("content", "")
+        label = f"skill manifest: {count} skill{'s' if count != 1 else ''}"
+        return Block(kind="framework", label=label, text=body,
+                     meta={**common_meta, "skillCount": count,
+                           "isInitial": att.get("isInitial")})
+
+    if sub in ("plan_mode", "plan_mode_exit"):
+        p = att.get("planFilePath", "")
+        verb = "exited" if sub == "plan_mode_exit" else "entered"
+        exists = att.get("planExists", False)
+        label = f"plan mode {verb}" + (" (file exists)" if exists else "")
+        return Block(kind="meta", label=label, text=p,
+                     meta={**common_meta, "planFilePath": p, "planExists": exists,
+                           "reminderType": att.get("reminderType"),
+                           "isSubAgent": att.get("isSubAgent")})
+
+    if sub == "command_permissions":
+        allowed = att.get("allowedTools") or []
+        label = f"permissions: {len(allowed)} allowed" if allowed else "permissions: none"
+        return Block(kind="meta", label=label, text="\n".join(allowed),
+                     meta={**common_meta, "allowedTools": allowed})
+
+    if sub == "hook_success":
+        name = att.get("hookName", "?")
+        ms = att.get("durationMs", 0)
+        ec = att.get("exitCode", 0)
+        stdout = att.get("stdout", "") or ""
+        stderr = att.get("stderr", "") or ""
+        status = "" if ec == 0 else f" (exit {ec})"
+        label = f"hook: {name} ({ms}ms){status}"
+        parts = []
+        cmd = att.get("command")
+        if cmd:
+            parts.append(f"$ {cmd}")
+        if stdout:
+            parts.append(f"\u2014 stdout \u2014\n{stdout}")
+        if stderr:
+            parts.append(f"\u2014 stderr \u2014\n{stderr}")
+        return Block(kind="meta", label=label, text="\n\n".join(parts),
+                     meta={**common_meta, "hookName": name, "durationMs": ms,
+                           "exitCode": ec, "toolUseID": att.get("toolUseID"),
+                           "hookEvent": att.get("hookEvent")})
+
+    if sub == "todo_reminder":
+        n = att.get("itemCount", 0)
+        return Block(kind="meta", label=f"todo reminder ({n} item{'s' if n != 1 else ''})",
+                     text="", meta={**common_meta, "itemCount": n})
+
+    if sub == "date_change":
+        d = att.get("newDate", "")
+        return Block(kind="meta", label=f"date change: {d}", text="",
+                     meta={**common_meta, "newDate": d})
+
+    if sub == "ultrathink_effort":
+        extras = {k: v for k, v in att.items() if k != "type"}
+        return Block(kind="meta", label="ultrathink effort",
+                     text=_stringify(extras), meta={**common_meta, **extras})
+
+    # VS Code-client subtypes:
+    if sub == "nested_memory":
+        # CLAUDE.md or imported-memory content resolved from a subdirectory.
+        raw = att.get("content")
+        content = raw if isinstance(raw, str) else _stringify(raw if raw is not None else att)
+        path = att.get("path") or att.get("filePath") or ""
+        return Block(kind="framework",
+                     label=f"nested memory: {path or '(content)'}",
+                     text=content,
+                     meta={**common_meta, "path": path})
+
+    if sub == "hook_additional_context":
+        # Hook injected extra context mid-turn.
+        raw = att.get("content")
+        content = raw if isinstance(raw, str) else _stringify(raw if raw is not None else att)
+        name = att.get("hookName", "")
+        return Block(kind="framework",
+                     label=f"hook context" + (f": {name}" if name else ""),
+                     text=content,
+                     meta={**common_meta, "hookName": name})
+
+    if sub == "plan_mode_reentry":
+        p = att.get("planFilePath", "")
+        return Block(kind="meta", label="plan mode re-entered", text=p,
+                     meta={**common_meta, "planFilePath": p})
+
+    if sub == "edited_text_file":
+        # File edit bundled with a message.
+        path = att.get("filePath") or att.get("path") or ""
+        return Block(kind="meta", label=f"edited file: {path or '(unknown)'}",
+                     text=_stringify(att), meta={**common_meta, "filePath": path})
+
+    # CLI-client subtypes:
+    if sub == "selected_lines_in_ide":
+        raw = att.get("content")
+        content = raw if isinstance(raw, str) else _stringify(raw if raw is not None else att)
+        return Block(kind="framework", label="IDE selection", text=content,
+                     meta=common_meta)
+
+    if sub == "task_reminder":
+        # Same shape as todo_reminder; differently named.
+        n = att.get("itemCount", 0)
+        return Block(kind="meta",
+                     label=f"task reminder ({n} item{'s' if n != 1 else ''})",
+                     text="", meta={**common_meta, "itemCount": n})
+
+    if sub == "file":
+        # Direct file inclusion via @path.
+        name = att.get("filename") or att.get("displayPath") or ""
+        content = att.get("content") or ""
+        return Block(kind="framework",
+                     label=f"file: {att.get('displayPath') or name}",
+                     text=str(content) if content else "",
+                     meta={**common_meta,
+                           "filename": name,
+                           "displayPath": att.get("displayPath")})
+
+    if sub == "compact_file_reference":
+        # A filename breadcrumb kept after /compact purged the file's content.
+        # No content — render it as a dimmed meta row.
+        name = att.get("filename") or ""
+        dp = att.get("displayPath") or name
+        return Block(kind="meta", label=f"compact ref: {dp}", text="",
+                     meta={**common_meta,
+                           "filename": name,
+                           "displayPath": dp,
+                           "compactRef": True})
+
+    # Unknown attachment subtype — keep visible so we notice new ones.
+    return Block(kind="meta", label=f"attachment: {sub}",
+                 text=_stringify(att), meta=common_meta)
+
+
+# Keys on Claude Code events that hold session-level metadata. These are
+# repeated verbatim on every event; we snapshot them onto Session.context once.
+SESSION_CONTEXT_KEYS = ("entrypoint", "cwd", "gitBranch", "version",
+                        "slug", "sessionId", "userType")
+
+
+# Fields likely to be a time duration expressed in milliseconds — used for
+# formatting durationMs into "74.1s" labels.
+def _fmt_ms(ms: Any) -> str:
+    try:
+        ms = float(ms)
+    except (TypeError, ValueError):
+        return "?"
+    if ms < 1000:
+        return f"{ms:.0f}ms"
+    return f"{ms/1000:.1f}s"
+
+
+_LOCAL_CMD_RE = re.compile(
+    r"<command-name>([^<]*)</command-name>.*?(?:<command-args>([^<]*)</command-args>)?",
+    re.DOTALL,
+)
+
+
+def _parse_system_event(entry: dict) -> Block:
+    """Claude Code `type:"system"` events carry framework signals via the
+    `subtype` discriminator. Confirmed subtypes (CLI 2.1.108): compact_boundary,
+    turn_duration, away_summary, local_command. Others (memory_saved, api_metrics,
+    etc.) appear in the TS schema but weren't observed in live sessions — we
+    still surface them as meta blocks so they don't get silently dropped.
+    """
+    sub = entry.get("subtype", "?")
+    common = {
+        "subtype": sub,
+        "timestamp": entry.get("timestamp"),
+        "uuid": entry.get("uuid"),
+        "parentUuid": entry.get("parentUuid"),
+        "logicalParentUuid": entry.get("logicalParentUuid"),
+        "level": entry.get("level"),
+    }
+    # Drop None values to keep meta compact
+    common = {k: v for k, v in common.items() if v is not None}
+
+    if sub == "compact_boundary":
+        cm = entry.get("compactMetadata") or {}
+        pre = cm.get("preTokens", 0)
+        post = cm.get("postTokens", 0)
+        dur = cm.get("durationMs", 0)
+        trigger = cm.get("trigger", "?")
+        saved = max(0, pre - post)
+        pct = (100 * saved / pre) if pre else 0
+        label = (f"compact · {pre:,} → {post:,} tok (-{pct:.0f}%) "
+                 f"· {trigger} ({_fmt_ms(dur)})")
+        return Block(kind="compact", label=label, text=entry.get("content", ""),
+                     meta={**common, "compactMetadata": cm,
+                           "preTokens": pre, "postTokens": post,
+                           "durationMs": dur, "trigger": trigger,
+                           "tokensSaved": saved})
+
+    if sub == "turn_duration":
+        dur = entry.get("durationMs", 0)
+        msgs = entry.get("messageCount")
+        label = f"turn · {_fmt_ms(dur)}" + (f" · {msgs} msgs" if msgs else "")
+        return Block(kind="metric", label=label, text="",
+                     meta={**common, "durationMs": dur, "messageCount": msgs})
+
+    if sub == "away_summary":
+        text = entry.get("content", "") or ""
+        return Block(kind="framework", label=f"away summary · {_short(text, 70)}",
+                     text=text, meta=common)
+
+    if sub == "local_command":
+        raw = entry.get("content", "") or ""
+        m = _LOCAL_CMD_RE.search(raw)
+        name = (m.group(1).strip() if m else "?")
+        args = (m.group(2).strip() if m and m.group(2) else "")
+        label_name = name or "(local command)"
+        label = f"/{label_name.lstrip('/')}" + (f" {args}" if args else "")
+        return Block(kind="meta", label=label, text=raw,
+                     meta={**common, "commandName": name, "commandArgs": args})
+
+    # Fallback for untested subtypes. Preserve the payload so a future user's
+    # session with, say, `api_metrics` lands visibly instead of vanishing.
+    text = entry.get("content", "") or _stringify(
+        {k: v for k, v in entry.items()
+         if k not in ("type", "subtype", "uuid", "parentUuid",
+                      "timestamp", "userType", "entrypoint", "cwd",
+                      "sessionId", "version", "gitBranch", "slug",
+                      "logicalParentUuid", "isSidechain", "isMeta", "level")})
+    return Block(kind="meta", label=f"system/{sub}", text=text, meta=common)
+
+
+def _parse_claude_entry(entry: dict) -> Block | list[Block] | None:
     etype = entry.get("type")
+
     if etype == "summary":
         text = entry.get("summary", "")
         return Block(kind="meta", label=f"summary: {_short(text)}", text=text)
-    if etype in ("user", "assistant", "system"):
+
+    if etype == "ai-title":
+        t = entry.get("aiTitle", "") or ""
+        return Block(kind="meta", label=f"ai-title: {_short(t, 90)}", text=t,
+                     meta={"aiTitle": t})
+
+    if etype == "last-prompt":
+        t = entry.get("lastPrompt", "") or ""
+        return Block(kind="meta", label=f"last-prompt: {_short(t, 60)}", text=t,
+                     meta={"promptId": entry.get("promptId")})
+
+    if etype == "queue-operation":
+        op = entry.get("operation", "")
+        return Block(kind="meta", label=f"queue: {op}", text="",
+                     meta={"operation": op, "timestamp": entry.get("timestamp")})
+
+    if etype == "file-history-snapshot":
+        snap = entry.get("snapshot") if isinstance(entry.get("snapshot"), dict) else {}
+        tracked = snap.get("trackedFileBackups") or {}
+        is_update = bool(entry.get("isSnapshotUpdate"))
+        paths = list(tracked.keys())
+        verb = "update" if is_update else "initial"
+        n = len(paths)
+        label = f"snapshot {verb}: {n} file{'s' if n != 1 else ''}"
+        return Block(kind="meta", label=label, text="\n".join(paths),
+                     meta={"messageId": entry.get("messageId"),
+                           "isSnapshotUpdate": is_update,
+                           "trackedCount": n,
+                           "tracked": tracked})
+
+    if etype == "attachment":
+        return _parse_attachment(entry)
+
+    if etype == "progress":
+        # Streaming tool-progress updates. Seen in sub-agent files.
+        ptype = entry.get("ptype") or entry.get("progressType") or (
+            entry.get("data", {}) or {}).get("type") if isinstance(entry.get("data"), dict) else None
+        tool_use_id = entry.get("toolUseID") or entry.get("tool_use_id")
+        label = f"progress" + (f" · {ptype}" if ptype else "")
+        return Block(kind="meta", label=label,
+                     text=_stringify({k: v for k, v in entry.items()
+                                      if k not in ("type", "timestamp", "uuid",
+                                                   "parentUuid", "userType",
+                                                   "entrypoint", "cwd", "sessionId",
+                                                   "version", "gitBranch", "slug")}),
+                     meta={"progressType": ptype, "toolUseID": tool_use_id,
+                           "timestamp": entry.get("timestamp"),
+                           "uuid": entry.get("uuid")})
+
+    if etype == "permission-mode":
+        mode = entry.get("permissionMode", "?")
+        return Block(kind="meta", label=f"permission mode: {mode}", text="",
+                     meta={"permissionMode": mode})
+
+    if etype == "system":
+        return _parse_system_event(entry)
+
+    if etype in ("user", "assistant"):
         msg = entry.get("message") or {}
         role = msg.get("role") or etype
         content = msg.get("content")
-        kids = _blocks_from_content(content)
-        # collapse single text children into the parent preview for nicer labels
+        # `toolUseResult` on user events holds the full stdout + persisted-file
+        # pointer for oversized tool outputs. Pass it through so the tool_result
+        # block parser can reveal what the JSONL otherwise hides.
+        kids = _blocks_from_content(content, entry.get("toolUseResult"))
         joined = "\n".join(c.text for c in kids) if kids else _stringify(msg)
-        label = f"{role} \u00b7 {_short(joined)}" if joined else role
-        return Block(
-            kind=_role_kind(role),
-            label=label,
-            text="",
-            children=kids,
-            meta={
-                "timestamp": entry.get("timestamp"),
-                "uuid": entry.get("uuid"),
-                "parentUuid": entry.get("parentUuid"),
-                "model": msg.get("model"),
-                "usage": msg.get("usage"),
-            },
-        )
+        # Claude Code flags framework-injected "user" events (slash-command
+        # bodies, skill doc loads, resume stubs) as isMeta — these aren't
+        # real user input, they're context the harness stuffs in. Surface
+        # them as their own kind so aggregates tell the truth.
+        is_meta = bool(entry.get("isMeta"))
+        kind = "framework" if is_meta and etype == "user" else _role_kind(role)
+        prefix = "framework" if kind == "framework" else role
+        label = f"{prefix} \u00b7 {_short(joined)}" if joined else prefix
+        meta = {
+            "timestamp": entry.get("timestamp"),
+            "uuid": entry.get("uuid"),
+            "parentUuid": entry.get("parentUuid"),
+            "model": msg.get("model"),
+            "usage": msg.get("usage"),
+        }
+        # Preserve additional per-event signals only when set (keep meta tight)
+        for k in ("isMeta", "isSidechain", "isApiErrorMessage", "requestId",
+                  "promptId", "permissionMode",
+                  "sourceToolUseID", "sourceToolAssistantUUID"):
+            v = entry.get(k)
+            if v:
+                meta[k] = v
+        return Block(kind=kind, label=label, text="", children=kids, meta=meta)
+
     # Unknown top-level event — keep it visible as raw so nothing is silently dropped.
     return Block(
         kind="meta",
@@ -413,8 +806,13 @@ def _load_jsonl(path: Path) -> Iterable[dict]:
         yield {"type": "__read_error__", "error": str(e)}
 
 
-def _peek_title(path: Path, client: str, *, max_lines: int = 10, max_bytes: int = 65536) -> str:
-    """Cheap title extraction — read only the first few lines."""
+def _peek_title(path: Path, client: str, *, max_lines: int = 200, max_bytes: int = 262144) -> str:
+    """Cheap title extraction — scan the first ~256KB for a usable title.
+
+    Priority (Claude): `ai-title` > `summary` > first real user message.
+    `ai-title` is Claude Code's own generated title and almost always wins when
+    present; it may appear a dozen or so events in, so scan beyond line 10.
+    """
     try:
         with path.open("r", encoding="utf-8", errors="replace") as f:
             chunk = f.read(max_bytes)
@@ -434,10 +832,14 @@ def _peek_title(path: Path, client: str, *, max_lines: int = 10, max_bytes: int 
         if not isinstance(e, dict):
             continue
         if client == "claude":
+            if e.get("type") == "ai-title":
+                t = e.get("aiTitle") or ""
+                if t.strip():
+                    return _short(t, 90)
             if e.get("type") == "summary":
                 s = e.get("summary", "")
                 if s: return _short(s, 90)
-            if e.get("type") == "user" and first_user is None:
+            if e.get("type") == "user" and not e.get("isMeta") and first_user is None:
                 msg = e.get("message") or {}
                 c = msg.get("content")
                 if isinstance(c, str) and c.strip():
@@ -463,9 +865,18 @@ def _peek_title(path: Path, client: str, *, max_lines: int = 10, max_bytes: int 
 
 
 def _derive_title(blocks: list[Block], fallback: str) -> str:
+    # AI-generated title wins if present — it's what Claude Code itself
+    # picked, and matches the UI in other Claude surfaces.
+    for b in blocks:
+        if b.kind == "meta" and b.label.startswith("ai-title:"):
+            t = (b.meta or {}).get("aiTitle") if isinstance(b.meta, dict) else None
+            if isinstance(t, str) and t.strip():
+                return _short(t, 90)
+    # Conversation summary second
     for b in blocks:
         if b.kind == "meta" and b.label.startswith("summary:"):
             return b.label[len("summary:"):].strip() or fallback
+    # First *real* user message third (skip framework-injected content)
     for b in blocks:
         if b.kind == "user":
             for c in b.children:
@@ -494,17 +905,52 @@ def _fallback_title(path: Path, client: str) -> str:
     return stem
 
 
+_SUBAGENT_RE = re.compile(r"/([0-9a-f-]{36})/subagents/agent-([^/]+)\.jsonl$")
+
+
+def _classify_jsonl(path: Path) -> tuple[str, str | None]:
+    """Return (role, parentSessionId | None) for a Claude Code JSONL path.
+
+    Claude Code writes subagent transcripts to:
+      .../<project>/<parent-session-uuid>/subagents/agent-<agent-id>.jsonl
+    Those shouldn't pollute the top-level session list; they belong under
+    their parent session.
+    """
+    m = _SUBAGENT_RE.search(str(path))
+    if m:
+        return "subagent", m.group(1)
+    return "session", None
+
+
 def _list_one(root: Path, client: str) -> list[dict]:
-    """Very cheap metadata-only scan — no file reads, just `stat()`."""
+    """Very cheap metadata-only scan — no file reads, just `stat()`.
+
+    For Claude sessions, subagent JSONLs (nested under
+    <session-uuid>/subagents/) are not returned as top-level entries. They're
+    attached to the parent session's `subagents` list instead.
+    """
     if not root.exists():
         return []
-    out: list[dict] = []
+    entries: list[dict] = []
+    subagents: dict[str, list[dict]] = {}  # parent sessionId -> [subagent metas]
     for path in sorted(root.rglob("*.jsonl")):
         try:
             st = path.stat()
         except OSError:
             continue
-        out.append({
+        role, parent_id = ("session", None)
+        if client == "claude":
+            role, parent_id = _classify_jsonl(path)
+        if role == "subagent" and parent_id:
+            subagents.setdefault(parent_id, []).append({
+                "id": f"{client}::{path}",
+                "path": str(path),
+                "mtime": st.st_mtime,
+                "size": st.st_size,
+                "agentId": path.stem.replace("agent-", "", 1),
+            })
+            continue
+        entries.append({
             "id": f"{client}::{path}",
             "client": client,
             "title": _fallback_title(path, client),
@@ -512,7 +958,15 @@ def _list_one(root: Path, client: str) -> list[dict]:
             "mtime": st.st_mtime,
             "size": st.st_size,
         })
-    return out
+    # Attach subagent lists to their parent sessions. A session's parent id is
+    # the uuid portion of its own filename stem (Claude Code convention).
+    if subagents:
+        by_stem = {Path(e["path"]).stem: e for e in entries}
+        for parent_id, subs in subagents.items():
+            parent = by_stem.get(parent_id)
+            if parent is not None:
+                parent["subagents"] = sorted(subs, key=lambda x: x["mtime"])
+    return entries
 
 
 def list_claude_sessions(root: Path) -> list[dict]:
@@ -529,6 +983,7 @@ MAX_ENTRIES_PER_FILE = 20_000  # safety cap — keeps UI responsive on huge audi
 def _parse_file(path: Path, client: str) -> Session:
     """Full parse for a single file. Robust to bad data. Capped for safety."""
     blocks: list[Block] = []
+    ctx: dict[str, Any] = {}  # session-level metadata snapshot
     seen = 0
     truncated = False
     for e in _load_jsonl(path):
@@ -536,6 +991,12 @@ def _parse_file(path: Path, client: str) -> Session:
         if seen > MAX_ENTRIES_PER_FILE:
             truncated = True
             break
+        # Snapshot session-level metadata the first time we see it. These
+        # fields repeat verbatim on every event, so we lift them once.
+        if client == "claude":
+            for k in SESSION_CONTEXT_KEYS:
+                if k not in ctx and e.get(k) is not None:
+                    ctx[k] = e[k]
         try:
             if e.get("type") == "__parse_error__":
                 blocks.append(Block(kind="meta", label=f"parse error line {e.get('line')}",
@@ -571,7 +1032,157 @@ def _parse_file(path: Path, client: str) -> Session:
         path=str(path),
         mtime=mtime,
         blocks=blocks,
+        context=ctx,
     )
+
+
+# ---------- export formats ------------------------------------------------
+def _md_escape(text: str) -> str:
+    """Escape characters that would break the containing fenced block or header.
+    Plain text doesn't need much — backticks are the main hazard inside fences,
+    which we handle by picking a longer fence than any internal run.
+    """
+    return text
+
+
+def _fence_for(text: str) -> str:
+    """Pick a fence length longer than the longest run of backticks in ``text``."""
+    longest = 0
+    run = 0
+    for ch in text:
+        if ch == "`":
+            run += 1
+            longest = max(longest, run)
+        else:
+            run = 0
+    return "`" * max(3, longest + 1)
+
+
+def _walk_body_text(block: Block) -> str:
+    """Concatenate the visible prose from a block and its children."""
+    parts: list[str] = []
+    if block.text:
+        parts.append(block.text)
+    for c in block.children:
+        parts.append(_walk_body_text(c))
+    return "\n".join(p for p in parts if p)
+
+
+def session_to_markdown(s: Session) -> str:
+    total = sum(est_tokens(b.text) for b in _walk(s.blocks))
+    out: list[str] = []
+    out.append(f"# {s.title or '(untitled)'}")
+    out.append("")
+    out.append(f"- **Client:** {s.client}")
+    out.append(f"- **Path:** `{s.path}`")
+    model = s._detect_model()
+    if model:
+        out.append(f"- **Model:** `{model}`")
+    out.append(f"- **Tokens (tiktoken):** {total:,}")
+    out.append(f"- **Blocks:** {len(s.blocks):,}")
+    out.append("")
+    out.append("---")
+
+    def render(b: Block, depth: int = 2):
+        prefix = "#" * min(depth, 6)
+        kind = b.kind
+        label = b.label or ""
+        if kind in ("system", "user", "assistant"):
+            out.append(f"\n{prefix} {kind.capitalize()}")
+            for c in b.children:
+                render(c, depth + 1)
+            return
+        if kind == "text":
+            if b.text.strip():
+                out.append("")
+                out.append(b.text)
+            return
+        if kind == "thinking":
+            out.append(f"\n{prefix} Thinking")
+            if b.text.strip():
+                out.append("")
+                out.append(b.text)
+            return
+        if kind == "tool_use":
+            name = (b.meta or {}).get("name", "tool")
+            fence = _fence_for(b.text)
+            out.append(f"\n{prefix} Tool use: {name}")
+            out.append(f"{fence}json")
+            out.append(b.text or "{}")
+            out.append(fence)
+            return
+        if kind == "tool_result":
+            err = " (error)" if (b.meta or {}).get("is_error") else ""
+            body = _walk_body_text(b)
+            fence = _fence_for(body)
+            out.append(f"\n{prefix} Tool result{err}")
+            if body.strip():
+                out.append(fence)
+                out.append(body)
+                out.append(fence)
+            return
+        if kind == "image":
+            out.append(f"\n{prefix} Image")
+            out.append(f"> `{label}`")
+            return
+        if kind == "document":
+            out.append(f"\n{prefix} Document")
+            return
+        if kind == "meta":
+            # Keep meta nodes terse — just the label, skip verbose payloads.
+            out.append(f"\n_{label}_")
+            return
+        # Fallback for raw / unknown
+        out.append(f"\n{prefix} {kind}")
+        if b.text.strip():
+            fence = _fence_for(b.text)
+            out.append(fence)
+            out.append(b.text)
+            out.append(fence)
+
+    for b in s.blocks:
+        render(b, depth=2)
+    return "\n".join(out) + "\n"
+
+
+def session_to_json(s: Session) -> str:
+    return json.dumps(s.full(), indent=2, ensure_ascii=False)
+
+
+def session_to_html(s: Session) -> str:
+    """Self-contained HTML — the markdown export wrapped in minimal styling.
+
+    This isn't the full interactive viewer; it's a readable static transcript
+    suitable for sharing. Uses inline CSS so a single file is portable.
+    """
+    md = session_to_markdown(s)
+    # Escape for safe embedding inside the <pre> below — we do NOT try to
+    # render the markdown here; tools like Obsidian / GitHub / a preview window
+    # can handle the .md extension. The HTML mode is for "open in browser".
+    safe = (md.replace("&", "&amp;")
+              .replace("<", "&lt;")
+              .replace(">", "&gt;"))
+    title = (s.title or "(untitled)").replace("<", "&lt;").replace(">", "&gt;")
+    return (
+        "<!doctype html>\n<html><head><meta charset=\"utf-8\">"
+        f"<title>{title}</title>"
+        "<style>"
+        "body{font:14px/1.55 ui-sans-serif,system-ui,sans-serif;max-width:900px;"
+        "margin:32px auto;padding:0 20px;color:#1a1f2e;background:#fafbfc}"
+        "pre{white-space:pre-wrap;word-wrap:break-word;background:#f3f5f8;"
+        "padding:12px 14px;border-radius:6px;border:1px solid #e3e7ee;"
+        "font:12px/1.5 ui-monospace,Menlo,Consolas,monospace}"
+        "</style></head><body>"
+        f"<pre>{safe}</pre>"
+        "</body></html>\n"
+    )
+
+
+EXPORT_FORMATS = {
+    "md":   ("text/markdown; charset=utf-8",       ".md",   session_to_markdown),
+    "json": ("application/json; charset=utf-8",    ".json", session_to_json),
+    "html": ("text/html; charset=utf-8",           ".html", session_to_html),
+}
 
 
 # ---------- HTTP server ---------------------------------------------------
@@ -590,9 +1201,19 @@ class State:
         # Peeked-title cache keyed by session id -> title (from first-lines scan)
         self._titles: dict[str, str] = {}
         self._titles_lock = threading.Lock()
+        # Raw-file content cache for global search: sid -> (mtime, text)
+        self._search_text: dict[str, tuple[float, str]] = {}
+        self._search_lock = threading.Lock()
 
     def list_all(self) -> list[dict]:
-        """Very cheap directory scan: stat + path-derived title only."""
+        """Very cheap directory scan: stat + path-derived title only.
+
+        Parent sessions are returned; sub-agent files are attached to their
+        parents as `subagents: [{id, path, mtime, size, agentId}]`. All IDs
+        (including sub-agents) land in `self._meta` so `state.get(sid)` can
+        still open a sub-agent when the client clicks one — they're just not
+        top-level sidebar entries.
+        """
         items: list[dict] = []
         for root in self.claude_roots:
             items.extend(list_claude_sessions(root))
@@ -607,7 +1228,25 @@ class State:
             cached = self._titles.get(it["id"])
             if cached:
                 it["title"] = cached
-        self._meta = {it["id"]: it for it in out}
+        # Rebuild _meta including sub-agents so ID lookups resolve. Sub-agents
+        # aren't returned in the main list, but state.get(sid) needs to find
+        # them when the user clicks a sub-agent chip.
+        meta_map: dict[str, dict] = {}
+        for it in out:
+            meta_map[it["id"]] = it
+            for sa in it.get("subagents") or []:
+                # Synthesize a minimal meta entry for each sub-agent.
+                meta_map[sa["id"]] = {
+                    "id":    sa["id"],
+                    "client": "claude",
+                    "title": f"sub-agent {sa['agentId'][:12]}",
+                    "path":  sa["path"],
+                    "mtime": sa["mtime"],
+                    "size":  sa["size"],
+                    "isSubagent": True,
+                    "parentId": it["id"],
+                }
+        self._meta = meta_map
         return out
 
     def titles_for(self, ids: list[str] | None = None) -> dict[str, str]:
@@ -655,8 +1294,142 @@ class State:
         self._full[sid] = sess
         return sess
 
+    # ---- global search -----------------------------------------------------
+    def _content_for(self, sid: str) -> str | None:
+        """Read the JSONL file for a session, cached by mtime."""
+        meta = self._meta.get(sid)
+        if not meta:
+            return None
+        path = Path(meta["path"])
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            return None
+        cached = self._search_text.get(sid)
+        if cached and cached[0] == mtime:
+            return cached[1]
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None
+        with self._search_lock:
+            self._search_text[sid] = (mtime, text)
+        return text
 
-def make_handler(state: State):
+    def search(self, query: str, *, regex: bool = False, case: bool = False,
+               clients: set[str] | None = None,
+               max_sessions: int = 100, max_hits: int = 20) -> list[dict]:
+        if not query:
+            return []
+        flags = 0 if case else re.IGNORECASE
+        try:
+            pat = re.compile(query if regex else re.escape(query), flags)
+        except re.error:
+            return []
+        if not self._meta:
+            self.list_all()
+        results: list[dict] = []
+        # Iterate most-recent sessions first for relevance.
+        for meta in sorted(self._meta.values(), key=lambda x: x["mtime"], reverse=True):
+            if clients and meta["client"] not in clients:
+                continue
+            text = self._content_for(meta["id"])
+            if not text:
+                continue
+            hits = []
+            for m in pat.finditer(text):
+                if len(hits) >= max_hits:
+                    break
+                s = max(0, m.start() - 60)
+                e = min(len(text), m.end() + 60)
+                snippet = re.sub(r"\s+", " ", text[s:e]).strip()
+                # Mark match range relative to the snippet for client highlight
+                rs = m.start() - s
+                re_ = rs + (m.end() - m.start())
+                hits.append({"snippet": snippet, "mark": [rs, re_]})
+            if hits:
+                results.append({
+                    "id":     meta["id"],
+                    "client": meta["client"],
+                    "title":  self._titles.get(meta["id"]) or meta["title"],
+                    "path":   meta["path"],
+                    "mtime":  meta["mtime"],
+                    "count":  len(hits),
+                    "hits":   hits,
+                })
+            if len(results) >= max_sessions:
+                break
+        return results
+
+
+class Watcher(threading.Thread):
+    """Polls session roots every ``interval`` seconds. On change, invalidates
+    the matching State caches and publishes an event to every subscriber.
+
+    Polling (rather than fsevents / inotify) keeps the install dep-free; a few
+    hundred stat() calls per tick is cheap.
+    """
+
+    def __init__(self, state: State, interval: float = 2.0):
+        super().__init__(daemon=True, name="viewer-watcher")
+        self.state = state
+        self.interval = interval
+        self._subs: list[queue.Queue] = []
+        self._lock = threading.Lock()
+        self._snapshot: dict[str, float] = {}
+
+    def subscribe(self) -> queue.Queue:
+        q: queue.Queue = queue.Queue(maxsize=64)
+        with self._lock:
+            self._subs.append(q)
+        return q
+
+    def unsubscribe(self, q: queue.Queue) -> None:
+        with self._lock:
+            if q in self._subs:
+                self._subs.remove(q)
+
+    def _publish(self, event: dict) -> None:
+        with self._lock:
+            subs = list(self._subs)
+        for q in subs:
+            try:
+                q.put_nowait(event)
+            except queue.Full:
+                # Drop events for slow subscribers rather than blocking the
+                # watcher thread. They'll see the next event.
+                pass
+
+    def run(self) -> None:
+        try:
+            self._snapshot = {m["id"]: m["mtime"] for m in self.state.list_all()}
+        except Exception:  # noqa: BLE001
+            self._snapshot = {}
+        while True:
+            time.sleep(self.interval)
+            try:
+                current = {m["id"]: m["mtime"] for m in self.state.list_all()}
+            except Exception:  # noqa: BLE001
+                continue
+            added   = current.keys() - self._snapshot.keys()
+            removed = self._snapshot.keys() - current.keys()
+            changed = {sid for sid in current
+                       if sid in self._snapshot and current[sid] != self._snapshot[sid]}
+            for sid in changed:
+                # Invalidate caches so the next get() re-parses fresh.
+                self.state._full.pop(sid, None)
+                self.state._search_text.pop(sid, None)
+                self._publish({"kind": "session-updated", "id": sid})
+            for sid in added:
+                self._publish({"kind": "session-added", "id": sid})
+            for sid in removed:
+                self.state._full.pop(sid, None)
+                self.state._search_text.pop(sid, None)
+                self._publish({"kind": "session-removed", "id": sid})
+            self._snapshot = current
+
+
+def make_handler(state: State, watcher: Watcher):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt: str, *args):  # quiet
             sys.stderr.write("[viewer] " + (fmt % args) + "\n")
@@ -709,6 +1482,113 @@ def make_handler(state: State):
                     self._send_json({"error": "not found", "id": sid}, 404)
                     return
                 self._send_json(s.full())
+                return
+            if path == "/api/events":
+                # Server-Sent Events — one long-lived connection per browser tab.
+                # Uses 20s keepalive comments so intermediate proxies don't close
+                # the socket. `X-Accel-Buffering: no` is an nginx-specific hint.
+                try:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Connection", "keep-alive")
+                    self.send_header("X-Accel-Buffering", "no")
+                    self.end_headers()
+                except (BrokenPipeError, ConnectionResetError):
+                    return
+                sub = watcher.subscribe()
+                try:
+                    self.wfile.write(b"event: hello\ndata: {}\n\n")
+                    self.wfile.flush()
+                    while True:
+                        try:
+                            event = sub.get(timeout=20)
+                        except queue.Empty:
+                            self.wfile.write(b": keepalive\n\n")
+                            self.wfile.flush()
+                            continue
+                        body = json.dumps(event).encode("utf-8")
+                        self.wfile.write(f"event: {event.get('kind','message')}\n".encode("utf-8"))
+                        self.wfile.write(b"data: " + body + b"\n\n")
+                        self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    pass
+                finally:
+                    watcher.unsubscribe(sub)
+                return
+            if path == "/api/search":
+                qs = parse_qs(parsed.query)
+                q = (qs.get("q") or [""])[0]
+                regex_flag = (qs.get("regex") or ["0"])[0] == "1"
+                case_flag = (qs.get("case") or ["0"])[0] == "1"
+                clients_raw = (qs.get("clients") or [""])[0]
+                clients = {c for c in clients_raw.split(",") if c} or None
+                results = state.search(q, regex=regex_flag, case=case_flag,
+                                       clients=clients)
+                self._send_json({"q": q, "count": len(results), "results": results})
+                return
+            if path == "/api/tool-result":
+                # Serves Claude Code's offloaded tool-result files, which live
+                # at <session-jsonl-parent>/<session-uuid>/tool-results/<name>.
+                # Security: only serve from that exact directory, reject any
+                # basename containing path separators or traversal bits.
+                qs = parse_qs(parsed.query)
+                sid = (qs.get("id") or [""])[0]
+                name = (qs.get("name") or [""])[0]
+                if not name or "/" in name or "\\" in name or name.startswith(".") or ".." in name:
+                    self._send_json({"error": "invalid name"}, 400)
+                    return
+                meta = state._meta.get(sid)
+                if not meta:
+                    self._send_json({"error": "session not found", "id": sid}, 404)
+                    return
+                # Session JSONL lives at .../<project>/<uuid>.jsonl;
+                # its tool-results folder is .../<project>/<uuid>/tool-results/
+                session_path = Path(meta["path"])
+                safe_dir = session_path.parent / session_path.stem / "tool-results"
+                target = (safe_dir / name).resolve()
+                if not str(target).startswith(str(safe_dir.resolve()) + os.sep):
+                    self._send_json({"error": "path escape"}, 403)
+                    return
+                if not target.is_file():
+                    self._send_json({"error": "not found", "target": str(target)}, 404)
+                    return
+                try:
+                    body = target.read_bytes()
+                except OSError as e:
+                    self._send_json({"error": f"read failed: {e}"}, 500)
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            if path == "/api/session/export":
+                qs = parse_qs(parsed.query)
+                sid = (qs.get("id") or [""])[0]
+                fmt = (qs.get("fmt") or ["md"])[0].lower()
+                if fmt not in EXPORT_FORMATS:
+                    self._send_json({"error": f"unknown fmt: {fmt}"}, 400)
+                    return
+                s = state.get(sid)
+                if not s:
+                    self._send_json({"error": "not found", "id": sid}, 404)
+                    return
+                ctype, ext, renderer = EXPORT_FORMATS[fmt]
+                body = renderer(s).encode("utf-8")
+                # Safe filename from the session title (ASCII-only, no slashes).
+                safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", s.title or "session").strip("_") or "session"
+                filename = f"{safe_stem[:80]}{ext}"
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Content-Disposition",
+                                 f'attachment; filename="{filename}"')
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
                 return
             self._send_json({"error": "not found"}, 404)
 
@@ -835,6 +1715,8 @@ def main():
     claude_roots = [_resolve(p_) for p_ in claude_inputs]
     codex_roots  = [_resolve(p_) for p_ in codex_inputs]
     state = State(claude_roots, codex_roots)
+    watcher = Watcher(state)
+    watcher.start()
 
     print("Context Window Viewer")
     if env_hits:
@@ -844,7 +1726,7 @@ def main():
     for root in codex_roots:
         print(f"  Codex:  {root} ({'exists' if root.exists() else 'missing'})")
 
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(state))
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(state, watcher))
     url = f"http://{args.host}:{args.port}/"
     print(f"  Open {url}")
     if not args.no_browser:
